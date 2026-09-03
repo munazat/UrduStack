@@ -3,9 +3,9 @@ title: UrduStack Playground
 emoji: "🇵🇰"
 colorFrom: green
 colorTo: teal
-sdk: docker
-sdk_version: "3.11"
-app_port: 7860
+sdk: gradio
+sdk_version: 5.1.0
+app_file: playground.py
 license: mit
 ---
 
