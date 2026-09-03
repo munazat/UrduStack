@@ -76,25 +76,25 @@ def parse_args():
     parser.add_argument(
         "--max_samples",
         type=int,
-        default=15000,
-        help="Max training examples to keep training fast.",
+        default=100000,
+        help="Max training examples (set high to use full dataset).",
     )
     parser.add_argument(
         "--val_samples",
         type=int,
-        default=2000,
+        default=5000,
         help="Validation set size.",
     )
     parser.add_argument(
         "--test_samples",
         type=int,
-        default=2000,
+        default=5000,
         help="Test set size.",
     )
     parser.add_argument(
         "--num_epochs",
         type=int,
-        default=3,
+        default=5,
         help="Training epochs.",
     )
     parser.add_argument(
