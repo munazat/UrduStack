@@ -1,6 +1,10 @@
+import csv
+from datetime import datetime, timezone
+from pathlib import Path
+
 from fastapi import APIRouter, File, UploadFile
 from pydantic import BaseModel, Field
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from app.models.risk_model import RiskModel
 from app.utils.normalization import normalize_with_segments
@@ -10,6 +14,9 @@ router = APIRouter()
 
 # Load risk model once at startup. Falls back to heuristic if no adapter exists.
 risk_model = RiskModel()
+
+_FEEDBACK_PATH = Path("data/feedback.csv")
+_FEEDBACK_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 
 class HealthResponse(BaseModel):
@@ -55,6 +62,19 @@ class TranscribeResponse(BaseModel):
     confidence: float
 
 
+class FeedbackRequest(BaseModel):
+    text: str = Field(..., min_length=1)
+    normalized: Optional[str] = None
+    score: float = Field(..., ge=0.0, le=1.0)
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    correct_label: str = Field(..., pattern="^(correct|low_risk|medium_risk|high_risk|spam|not_spam)$")
+    comment: Optional[str] = None
+
+
+class FeedbackResponse(BaseModel):
+    status: str
+
+
 @router.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     return HealthResponse(
@@ -94,3 +114,35 @@ def risk_score(payload: RiskScoreRequest) -> RiskScoreResponse:
 def transcribe(audio: UploadFile = File(...)) -> TranscribeResponse:
     text = transcribe_audio(audio.file)
     return TranscribeResponse(text=text, confidence=0.0)
+
+
+@router.post("/feedback", response_model=FeedbackResponse)
+def feedback(payload: FeedbackRequest) -> FeedbackResponse:
+    file_exists = _FEEDBACK_PATH.exists()
+    with _FEEDBACK_PATH.open("a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "timestamp",
+                "text",
+                "normalized",
+                "score",
+                "confidence",
+                "correct_label",
+                "comment",
+            ],
+        )
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(
+            {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "text": payload.text,
+                "normalized": payload.normalized or "",
+                "score": payload.score,
+                "confidence": payload.confidence,
+                "correct_label": payload.correct_label,
+                "comment": payload.comment or "",
+            }
+        )
+    return FeedbackResponse(status="ok")

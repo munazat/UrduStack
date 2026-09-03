@@ -22,3 +22,5 @@ checkpoints/
 *.wav
 *.mp3
 *.ogg
+data/feedback.csv
+data/processed/
