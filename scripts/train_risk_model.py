@@ -17,7 +17,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
-from datasets import Dataset
 from peft import LoraConfig, TaskType, get_peft_model
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from transformers import (
@@ -27,6 +26,34 @@ from transformers import (
     TrainingArguments,
     set_seed,
 )
+
+
+class _TokenizedDataset(torch.utils.data.Dataset):
+    """Plain torch Dataset — avoids the HF datasets formatter, which on
+    Colab imports torchvision.io.VideoReader at batch time and crashes.
+    Each __getitem__ returns ready-to-use torch tensors."""
+
+    def __init__(self, df, tokenizer, max_length=128):
+        self.texts = df["text"].tolist()
+        self.labels = df["label"].astype(int).tolist()
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+
+    def __len__(self):
+        return len(self.texts)
+
+    def __getitem__(self, idx):
+        enc = self.tokenizer(
+            self.texts[idx],
+            padding="max_length",
+            truncation=True,
+            max_length=self.max_length,
+        )
+        return {
+            "input_ids": torch.tensor(enc["input_ids"], dtype=torch.long),
+            "attention_mask": torch.tensor(enc["attention_mask"], dtype=torch.long),
+            "labels": torch.tensor(self.labels[idx], dtype=torch.long),
+        }
 
 
 def parse_args():
@@ -128,15 +155,6 @@ def load_data(path: str, max_train: int, val: int, test: int):
     return train, val_df, test_df
 
 
-def tokenize(batch, tokenizer, max_length=128):
-    return tokenizer(
-        batch["text"],
-        padding="max_length",
-        truncation=True,
-        max_length=max_length,
-    )
-
-
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
     preds = np.argmax(logits, axis=-1)
@@ -209,26 +227,12 @@ def main():
     model = get_peft_model(base_model, lora_config)
     model.print_trainable_parameters()
 
-    train_ds = Dataset.from_pandas(train_df[["text", "label"]])
-    val_ds = Dataset.from_pandas(val_df[["text", "label"]])
-
-    train_ds = train_ds.map(
-        lambda x: tokenize(x, tokenizer), batched=True, remove_columns=["text"]
-    )
-    val_ds = val_ds.map(
-        lambda x: tokenize(x, tokenizer), batched=True, remove_columns=["text"]
-    )
-    # Use numpy format instead of torch — datasets' torch formatter imports
-    # torchvision.io.VideoReader at batch time, which is missing on Colab's
-    # torchvision build. A custom collator (below) tensorizes per batch.
-    train_ds.set_format("numpy")
-    val_ds.set_format("numpy")
-
-    def collate_fn(batch):
-        return {
-            k: torch.tensor(np.stack([ex[k] for ex in batch]))
-            for k in batch[0]
-        }
+    # Plain torch Datasets — bypass the HF datasets formatter entirely.
+    # This is the actual fix for Colab's torchvision.io.VideoReader crash:
+    # Trainer's internal _prepare_dataset() re-applies torch formatting even
+    # when we set numpy, which re-triggers the broken import at batch time.
+    train_ds = _TokenizedDataset(train_df, tokenizer)
+    val_ds = _TokenizedDataset(val_df, tokenizer)
 
     # fp16 halves memory and speeds up training on CUDA. It is disabled on CPU
     # so the same script can still run (slowly) for smoke tests.
@@ -270,7 +274,6 @@ def main():
             eval_dataset=val_ds,
             processing_class=tokenizer,
             compute_metrics=compute_metrics,
-            data_collator=collate_fn,
         )
     except TypeError:
         trainer = Trainer(
@@ -280,7 +283,6 @@ def main():
             eval_dataset=val_ds,
             tokenizer=tokenizer,
             compute_metrics=compute_metrics,
-            data_collator=collate_fn,
         )
 
     trainer.train()
@@ -299,11 +301,7 @@ def main():
 
     if test_df is not None and len(test_df) > 0:
         print("Evaluating on test set...")
-        test_ds = Dataset.from_pandas(test_df[["text", "label"]])
-        test_ds = test_ds.map(
-            lambda x: tokenize(x, tokenizer), batched=True, remove_columns=["text"]
-        )
-        test_ds.set_format("numpy")
+        test_ds = _TokenizedDataset(test_df, tokenizer)
         metrics = trainer.evaluate(test_ds)
         print(metrics)
 
