@@ -1,0 +1,13 @@
+category,description,text,expected,score,predicted_level,flagged_phrases,passed
+scam,clean_ad,software engineer required karachi,low,0.0,low,,True
+scam,baseline_scam,job available 50000 per week send processing fee,high,0.7,high,processing fee | 50000 per week | job available,True
+scam,leetspeak_fee,"j0b availabl3, 50000 p3r w33k, s3nd pr0c3ssing f33",high,0.0,low,,False
+scam,spacing_evasion,"j o b a v a i l a b l e, s e n d p r o c e s s i n g f e e",high,0.0,low,,False
+scam,misspelling,"job availble, 50000 per wek, send procesing fee",high,0.0,low,,False
+scam,mixed_script,"job available, 50000 per week, processing fee bhejo",high,0.7,high,processing fee | 50000 per week | job available,True
+scam,roman_urdu_scam,job hai bhai 50000 per week fee bhejo,high,0.28,low,50000 per week,False
+toxic,baseline_toxic,kutta kamina,high,0.25,low,kutta,False
+toxic,leetspeak_toxic,kutt4 k4m1n4,high,0.0,low,,False
+toxic,spacing_toxic,k u t t a   k a m i n a,high,0.0,low,,False
+toxic,mixed_clean_toxic,yar tum bohat achay ho lekin kutta,high,0.25,low,kutta,False
+clean,code_switch_clean,yar aaj weather bohat achha hai,low,0.0,low,,True
