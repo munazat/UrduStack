@@ -37,6 +37,7 @@ class RiskModel:
             base_name = "xlm-roberta-base"
             base = AutoModelForSequenceClassification.from_pretrained(base_name)
             self.model = PeftModel.from_pretrained(base, self.model_path)
+            self._reload_classifier_weights()
             self.model = self.model.to(self.device).eval()
             self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
 
@@ -50,6 +51,33 @@ class RiskModel:
     @property
     def is_loaded(self) -> bool:
         return self.model is not None and self.tokenizer is not None
+
+    def _reload_classifier_weights(self):
+        """PEFT sometimes fails to restore modules_to_save on load.
+        Read the adapter file directly and patch the classifier in."""
+        import torch
+
+        safetensors_path = self.model_path / "adapter_model.safetensors"
+        if not safetensors_path.exists():
+            return
+        try:
+            from safetensors import safe_open
+
+            state_dict = self.model.state_dict()
+            loaded = 0
+            with safe_open(str(safetensors_path), framework="pt") as f:
+                for key in f.keys():
+                    if "classifier" not in key:
+                        continue
+                    for model_key in state_dict:
+                        if model_key.endswith(key):
+                            state_dict[model_key] = f.get_tensor(key)
+                            loaded += 1
+                            break
+            if loaded > 0:
+                self.model.load_state_dict(state_dict)
+        except Exception:
+            pass
 
     def _tokenize(self, text: str, max_length: int = 128):
         return self.tokenizer(
