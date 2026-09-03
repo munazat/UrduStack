@@ -1,44 +1,27 @@
-import os
-import requests
 import gradio as gr
 
-API_URL = os.getenv("URDUSTACK_API_URL", "http://localhost:8000")
+from app.models.risk_model import RiskModel
+from app.utils.normalization import normalize_with_segments
+
+_risk_model = RiskModel()
 
 
 def analyze(text: str):
     if not text or not text.strip():
         return "", "", "Please enter some text."
 
-    norm_resp = requests.post(
-        f"{API_URL}/normalize", json={"text": text}, timeout=30
-    )
-    norm_resp.raise_for_status()
-    norm = norm_resp.json()
-
-    risk_resp = requests.post(
-        f"{API_URL}/risk-score", json={"text": text}, timeout=30
-    )
-    risk_resp.raise_for_status()
-    risk = risk_resp.json()
-
-    normalized = norm.get("normalized", "")
-    confidence = norm.get("confidence", 0.0)
-
-    score = risk.get("score", 0.0)
-    rconf = risk.get("confidence", 0.0)
-    level = risk.get("risk_level", "unknown")
-    explanation = risk.get("explanation", "")
-    flagged = risk.get("flagged_phrases", [])
+    normalized, confidence, _segments = normalize_with_segments(text)
+    score, rconf, risk_level, flagged_phrases, explanation = _risk_model.score(text)
 
     flagged_text = "\n".join(
         f"- `{p['phrase']}` (contribution {p['contribution']:.2f})"
-        for p in flagged
+        for p in flagged_phrases
     )
     if not flagged_text:
         flagged_text = "No phrases flagged."
 
     summary = (
-        f"**Risk level:** {level.upper()}\n\n"
+        f"**Risk level:** {risk_level.upper()}\n\n"
         f"**Score:** {score:.2f} | **Confidence:** {rconf:.2f}\n\n"
         f"**Explanation:** {explanation}\n\n"
         f"**Normalized text** (confidence {confidence:.2f}):\n{normalized}\n\n"

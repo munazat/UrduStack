@@ -1,3 +1,14 @@
+---
+title: UrduStack Playground
+emoji: "🇵🇰"
+colorFrom: green
+colorTo: teal
+sdk: docker
+sdk_version: "3.11"
+app_port: 7860
+license: mit
+---
+
 # UrduStack
 
 A unified, self-hosted, code-switch-aware Urdu NLP infrastructure layer for Urdu text and speech.
