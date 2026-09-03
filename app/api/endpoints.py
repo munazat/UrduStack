@@ -2,11 +2,14 @@ from fastapi import APIRouter, File, UploadFile
 from pydantic import BaseModel, Field
 from typing import List, Dict
 
+from app.models.risk_model import RiskModel
 from app.utils.normalization import normalize_with_segments
-from app.utils.risk import compute_risk_score
 from app.utils.transcription import transcribe_audio
 
 router = APIRouter()
+
+# Load risk model once at startup. Falls back to heuristic if no adapter exists.
+risk_model = RiskModel()
 
 
 class HealthResponse(BaseModel):
@@ -56,7 +59,10 @@ class TranscribeResponse(BaseModel):
 def health() -> HealthResponse:
     return HealthResponse(
         status="ok",
-        models_loaded={"normalizer": False, "risk_scorer": False},
+        models_loaded={
+            "normalizer": True,  # rule-based normalizer is always available
+            "risk_scorer": risk_model.is_loaded,
+        },
     )
 
 
@@ -72,7 +78,7 @@ def normalize(payload: NormalizeRequest) -> NormalizeResponse:
 
 @router.post("/risk-score", response_model=RiskScoreResponse)
 def risk_score(payload: RiskScoreRequest) -> RiskScoreResponse:
-    score, confidence, risk_level, flagged_phrases, explanation = compute_risk_score(
+    score, confidence, risk_level, flagged_phrases, explanation = risk_model.score(
         payload.text
     )
     return RiskScoreResponse(
