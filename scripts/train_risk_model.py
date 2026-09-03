@@ -202,7 +202,7 @@ def main():
         lora_alpha=32,
         lora_dropout=0.1,
         bias="none",
-        target_modules=["query", "key", "value", "dense"],
+        target_modules=["query", "key", "value"],
     )
     model = get_peft_model(base_model, lora_config)
     model.print_trainable_parameters()
