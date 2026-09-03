@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UrduStack Playground</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; color: #1f2937; }
+    h1 { font-size: 1.75rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #6b7280; margin-bottom: 1.5rem; }
+    textarea { width: 100%; min-height: 100px; padding: 0.75rem; font-size: 1rem; border: 1px solid #d1d5db; border-radius: 0.5rem; resize: vertical; }
+    button { margin-top: 0.75rem; padding: 0.6rem 1.2rem; font-size: 1rem; background: #2563eb; color: white; border: none; border-radius: 0.5rem; cursor: pointer; }
+    button:disabled { background: #93c5fd; cursor: wait; }
+    .result { margin-top: 1.5rem; padding: 1rem; background: #f9fafb; border-radius: 0.5rem; border: 1px solid #e5e7eb; }
+    .result h3 { margin-top: 0; font-size: 1rem; color: #374151; }
+    .score { font-size: 1.5rem; font-weight: 700; }
+    .score.high { color: #dc2626; }
+    .score.medium { color: #d97706; }
+    .score.low { color: #16a34a; }
+    .phrase { display: inline-block; padding: 0.25rem 0.5rem; margin: 0.25rem 0.25rem 0 0; background: #fee2e2; color: #991b1b; border-radius: 9999px; font-size: 0.875rem; }
+    .loading { color: #6b7280; }
+    .error { color: #dc2626; }
+  </style>
+</head>
+<body>
+  <h1>UrduStack Playground</h1>
+  <p class="subtitle">Mixed Urdu / Roman Urdu / English → normalized Urdu + explainable risk score</p>
+
+  <textarea id="input" placeholder="yar mujhe pareshan mat karo bro...">job available, 50000 per week, send processing fee</textarea>
+  <br>
+  <button id="analyze" onclick="analyze()">Analyze</button>
+
+  <div id="output" class="result" style="display:none;"></div>
+
+  <script>
+    async function analyze() {
+      const text = document.getElementById('input').value.trim();
+      const out = document.getElementById('output');
+      const btn = document.getElementById('analyze');
+      if (!text) { out.style.display = 'block'; out.innerHTML = '<p class="error">Please enter some text.</p>'; return; }
+
+      btn.disabled = true;
+      out.style.display = 'block';
+      out.innerHTML = '<p class="loading">Analyzing...</p>';
+
+      try {
+        const [normRes, riskRes] = await Promise.all([
+          fetch('/normalize', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({text}) }),
+          fetch('/risk-score', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({text}) })
+        ]);
+        if (!normRes.ok || !riskRes.ok) throw new Error('API request failed');
+        const norm = await normRes.json();
+        const risk = await riskRes.json();
+
+        const phrases = risk.flagged_phrases.map(p => `<span class="phrase">${p.phrase} (${p.contribution.toFixed(2)})</span>`).join('');
+        out.innerHTML = `
+          <h3>Normalized</h3>
+          <p dir="rtl" style="font-size:1.1rem;">${norm.normalized}</p>
+          <p><small>Confidence: ${norm.confidence.toFixed(2)}</small></p>
+
+          <h3>Risk Assessment</h3>
+          <p class="score ${risk.risk_level}">${risk.score.toFixed(2)} — ${risk.risk_level.toUpperCase()}</p>
+          <p><strong>Confidence:</strong> ${risk.confidence.toFixed(2)}</p>
+          <p>${risk.explanation}</p>
+
+          <h3>Flagged Phrases</h3>
+          <div>${phrases || '<span style="color:#6b7280;">None</span>'}</div>
+        `;
+      } catch (err) {
+        out.innerHTML = `<p class="error">Error: ${err.message}</p>`;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
