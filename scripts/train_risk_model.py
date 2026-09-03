@@ -251,14 +251,26 @@ def main():
     except TypeError:
         training_args = TrainingArguments(evaluation_strategy="epoch", **common_args)
 
-    trainer = Trainer(
-        model=model,
-        args=training_args,
-        train_dataset=train_ds,
-        eval_dataset=val_ds,
-        tokenizer=tokenizer,
-        compute_metrics=compute_metrics,
-    )
+    # transformers >=4.49 removed the `tokenizer` Trainer kwarg in favour of
+    # `processing_class`. Try the new name first, fall back to the old one.
+    try:
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=train_ds,
+            eval_dataset=val_ds,
+            processing_class=tokenizer,
+            compute_metrics=compute_metrics,
+        )
+    except TypeError:
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=train_ds,
+            eval_dataset=val_ds,
+            tokenizer=tokenizer,
+            compute_metrics=compute_metrics,
+        )
 
     trainer.train()
 
