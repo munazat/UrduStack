@@ -25,6 +25,7 @@ from transformers import (
     AutoTokenizer,
     Trainer,
     TrainingArguments,
+    set_seed,
 )
 
 
@@ -96,6 +97,22 @@ def load_data(path: str, max_train: int, val: int, test: int):
         raise ValueError(f"PURUTT CSV missing columns: {missing}. Found: {list(df.columns)}")
 
     df = df.dropna(subset=["text", "label"]).reset_index(drop=True)
+
+    # Coerce labels to integers. Common string labels like "0"/"1" are handled.
+    try:
+        df["label"] = pd.to_numeric(df["label"], errors="raise").astype(int)
+    except Exception as exc:
+        raise ValueError(
+            "The 'label' column must contain numeric values (0 = clean, 1 = toxic/scam). "
+            f"Found non-numeric values. First few labels: {df['label'].head().tolist()}"
+        ) from exc
+
+    unique_labels = set(df["label"].unique())
+    if not unique_labels.issubset({0, 1}):
+        raise ValueError(
+            f"Labels must be 0 or 1. Found: {unique_labels}"
+        )
+
     df = df.sample(frac=1, random_state=42).reset_index(drop=True)
 
     total_needed = max_train + val + test
@@ -162,6 +179,7 @@ def find_temperature(model, tokenizer, val_df, device="cuda"):
 
 def main():
     args = parse_args()
+    set_seed(42)
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
 
     print(f"Loading data from {args.data_path}")
@@ -201,6 +219,10 @@ def main():
     train_ds.set_format("torch")
     val_ds.set_format("torch")
 
+    # fp16 halves memory and speeds up training on CUDA. It is disabled on CPU
+    # so the same script can still run (slowly) for smoke tests.
+    use_fp16 = torch.cuda.is_available()
+
     training_args = TrainingArguments(
         output_dir=args.output_dir,
         num_train_epochs=args.num_epochs,
@@ -219,6 +241,7 @@ def main():
         report_to="none",
         push_to_hub=args.push_to_hub,
         hub_model_id=args.hub_model_id,
+        fp16=use_fp16,
     )
 
     trainer = Trainer(
