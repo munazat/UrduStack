@@ -225,14 +225,15 @@ def main():
     # so the same script can still run (slowly) for smoke tests.
     use_fp16 = torch.cuda.is_available()
 
-    training_args = TrainingArguments(
+    # transformers >=4.49 renamed evaluation_strategy -> eval_strategy.
+    # Try the new name first; fall back to the old one if it rejects the kwarg.
+    common_args = dict(
         output_dir=args.output_dir,
         num_train_epochs=args.num_epochs,
         per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=args.batch_size * 2,
         learning_rate=2e-4,
         weight_decay=0.01,
-        evaluation_strategy="epoch",
         save_strategy="epoch",
         logging_strategy="steps",
         logging_steps=50,
@@ -245,6 +246,10 @@ def main():
         hub_model_id=args.hub_model_id,
         fp16=use_fp16,
     )
+    try:
+        training_args = TrainingArguments(eval_strategy="epoch", **common_args)
+    except TypeError:
+        training_args = TrainingArguments(evaluation_strategy="epoch", **common_args)
 
     trainer = Trainer(
         model=model,
