@@ -196,13 +196,15 @@ def main():
         num_labels=2,
     )
 
+    # Let PEFT pick target modules automatically — its SEQ_CLS default covers
+    # the attention projections without accidentally hitting the classifier head,
+    # which was crashing get_peft_model when "dense" was listed explicitly.
     lora_config = LoraConfig(
         task_type=TaskType.SEQ_CLS,
         r=16,
         lora_alpha=32,
         lora_dropout=0.1,
         bias="none",
-        target_modules=["query", "key", "value"],
     )
     model = get_peft_model(base_model, lora_config)
     model.print_trainable_parameters()
