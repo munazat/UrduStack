@@ -1,43 +1,27 @@
+import json
 import re
-from typing import List, Dict, Tuple
+from pathlib import Path
+from typing import Dict, List, Tuple
 
-# Minimal starter mapping from common Roman-Urdu spellings to Urdu script.
-# Replace or augment this with a frequency table derived from Roman-Urdu-Parl.
-ROMAN_TO_URDU: Dict[str, str] = {
-    "yar": "یار",
-    "bhai": "بھائی",
-    "bro": "بھائی",
-    "mujhe": "مجھے",
-    "mujhay": "مجھے",
-    "pareshan": "پریشان",
-    "mat": "مت",
-    "karo": "کرو",
-    "kro": "کرو",
-    "nahi": "نہیں",
-    "nai": "نہیں",
-    "han": "ہاں",
-    "haan": "ہاں",
-    "kaisa": "کیسا",
-    "kesa": "کیسا",
-    "ho": "ہو",
-    "aaj": "آج",
-    "main": "میں",
-    "mei": "میں",
-    "mein": "میں",
-    "tum": "تم",
-    "tu": "تو",
-    "to": "تو",
-    "bahut": "بہت",
-    "bohat": "بہت",
-    "bht": "بہت",
-    "achha": "اچھا",
-    "acha": "اچھا",
-    "theek": "ٹھیک",
-    "shukriya": "شکریہ",
-    "thanks": "شکریہ",
-    "allah": "اللہ",
-    "hafiz": "حافظ",
-}
+from app.utils.roman_urdu_map import ROMAN_TO_URDU
+
+_FREQ_MAP_PATH = Path("data/processed/roman_urdu_freq.json")
+
+
+def _load_frequency_map() -> Dict[str, str]:
+    if _FREQ_MAP_PATH.exists():
+        with _FREQ_MAP_PATH.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+
+# Prefer dataset-derived frequency map, fall back to hand-curated starter map.
+_FREQUENCY_MAP = _load_frequency_map()
+
+
+def _lookup(token: str) -> str | None:
+    lower = token.lower().strip(".,!?؛،")
+    return _FREQUENCY_MAP.get(lower) or ROMAN_TO_URDU.get(lower)
 
 
 def detect_script(token: str) -> str:
@@ -49,20 +33,18 @@ def detect_script(token: str) -> str:
 
 
 def normalize_text(text: str) -> str:
-    """Rule-based code-switch-aware normalization stub.
+    """Rule-based code-switch-aware normalization.
 
-    Replaces known Roman-Urdu tokens with Urdu script and leaves other tokens
-    untouched. This is sufficient for the Day-1 skeleton; it should be replaced
-    by a frequency-derived or learned transliterator using Roman-Urdu-Parl.
+    Replaces known Roman-Urdu tokens with Urdu script and leaves Urdu-script
+    tokens and other tokens untouched. Uses a dataset-derived frequency map
+    when available (run `scripts/build_normalizer_map.py` on Roman-Urdu-Parl),
+    otherwise falls back to a hand-curated starter map.
     """
     tokens = text.split()
     normalized_tokens: List[str] = []
     for token in tokens:
-        lower = token.lower().strip(".,!?؛،")
-        if lower in ROMAN_TO_URDU:
-            normalized_tokens.append(ROMAN_TO_URDU[lower])
-        else:
-            normalized_tokens.append(token)
+        mapping = _lookup(token)
+        normalized_tokens.append(mapping if mapping else token)
     return " ".join(normalized_tokens)
 
 
@@ -73,8 +55,7 @@ def normalize_with_segments(text: str) -> Tuple[str, float, List[Dict]]:
     confident = 0
     for token in tokens:
         script = detect_script(token)
-        lower = token.lower().strip(".,!?؛،")
-        mapping = ROMAN_TO_URDU.get(lower)
+        mapping = _lookup(token)
         if mapping:
             normalized_tokens.append(mapping)
             confident += 1
