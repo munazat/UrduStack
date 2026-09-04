@@ -18,6 +18,7 @@ def _build_flagged_chart(flagged_phrases):
         ax.text(0.5, 0.5, "No flagged phrases", ha="center", va="center",
                 fontsize=12, color="#888")
         ax.axis("off")
+        plt.close(fig)
         return fig
 
     phrases = [p["phrase"] for p in flagged_phrases[:8]]
@@ -37,6 +38,7 @@ def _build_flagged_chart(flagged_phrases):
     for i, (c, p) in enumerate(zip(contribs, phrases)):
         ax.text(c + 0.005, i, f"{c:.2f}", va="center", fontsize=9)
     plt.tight_layout()
+    plt.close(fig)
     return fig
 
 
@@ -234,6 +236,7 @@ def unified_text_analysis(text: str):
     """Run the full pipeline on text input."""
     empty_chart = plt.figure(figsize=(6, 1))
     plt.axis("off")
+    plt.close(empty_chart)
     if not text or not text.strip():
         return "Please enter some text to analyze.", "", 0.0, 0.0, "", empty_chart
 
