@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 from app.utils.risk import compute_risk_score as heuristic_score
+from app.utils.normalization import collapse_spaced_text
 
 # Optional heavy imports are deferred so the API can start without torch/transformers
 # installed if only the heuristic path is used.
@@ -89,6 +90,7 @@ class RiskModel:
         )
 
     def score(self, text: str) -> Tuple[float, float, str, List[Dict[str, float]], str]:
+        text = collapse_spaced_text(text)
         if not self.is_loaded:
             return heuristic_score(text)
 

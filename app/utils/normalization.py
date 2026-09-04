@@ -64,6 +64,20 @@ def _normalize_token(token: str) -> str:
     return transliterate(token)
 
 
+_SPACED_CHAR_RUN = re.compile(r"(?:\b\w)(?:\s\w){2,}\b")
+
+
+def collapse_spaced_text(text: str) -> str:
+    """Collapse character-spaced evasion text back into words.
+
+    Adversaries space out characters to bypass token-level classifiers:
+    "k u t t a" becomes "kutta".  Multi-space gaps between runs are
+    left as-is — the tokenizer handles residual whitespace and the
+    collapsed words are already recognisable to the model.
+    """
+    return _SPACED_CHAR_RUN.sub(lambda m: m.group().replace(" ", ""), text)
+
+
 def normalize_text(text: str) -> str:
     """Code-switch-aware normalization.
 
@@ -72,10 +86,12 @@ def normalize_text(text: str) -> str:
     Urdu-script tokens and non-Urdu tokens (URLs, numbers, English) pass
     through unchanged.
     """
+    text = collapse_spaced_text(text)
     return " ".join(_normalize_token(t) for t in text.split())
 
 
 def normalize_with_segments(text: str) -> Tuple[str, float, List[Dict]]:
+    text = collapse_spaced_text(text)
     tokens = text.split()
     segments: List[Dict] = []
     normalized_tokens: List[str] = []
