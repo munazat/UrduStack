@@ -10,7 +10,7 @@ class NERModel:
     input works. Falls back to empty results if the model cannot be loaded.
     """
 
-    def __init__(self, model_name: str = "wietsedv/xlm-roberta-base-ner"):
+    def __init__(self, model_name: str = "Davlan/xlm-roberta-base-wikiann-ner"):
         self.model_name = model_name
         self._pipe = None
         self._load_failed = False
