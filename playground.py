@@ -42,7 +42,8 @@ def find_entities(text: str):
 
     lines = []
     for e in entities:
-        icon = {"PERSON": "👤", "LOCATION": "📍", "ORGANIZATION": "🏢"}.get(
+        icon = {"PERSON": "👤", "LOCATION": "📍", "ORGANIZATION": "🏢",
+                "DATE": "📅", "MISC": "🏷️"}.get(
             e["entity_group"], "🏷️"
         )
         lines.append(
