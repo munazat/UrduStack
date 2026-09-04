@@ -21,4 +21,5 @@ checkpoints/
 *.mp3
 *.ogg
 data/feedback.csv
-data/processed/
+data/processed/*
+!data/processed/roman_urdu_freq.json
