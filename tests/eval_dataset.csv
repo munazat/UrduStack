@@ -1,0 +1,98 @@
+text,expected_label,category,description
+kya haal hai bhai,0,benign,friendly_greeting
+sab theek hai,0,benign,all_good
+aaj kya kar rahe ho,0,benign,casual_question
+bohat shukriya bhai,0,benign,gratitude
+yar kal milte hain,0,benign,plan_to_meet
+gussa mat karo sab theek ho jayega,0,benign,comforting_words
+bhai kaisa chal raha hai,0,benign,checking_in
+aaj mausam bohat acha hai,0,benign,weather_chat
+mujhe bhi acha lagta hai,0,benign,agreement
+tumhara din kaisa tha,0,benign,asking_about_day
+yar bohat maza aaya,0,benign,having_fun
+chalo theek hai phir baad mein milte hain,0,benign,saying_goodbye
+main theek hoon tum sunao,0,benign,replying_to_how_are_you
+bhai tum bohat achay ho,0,benign,compliment
+koi baat nahi hota rehta hai,0,benign,no_worries
+yar ajeeb baat hai,0,benign,casual_remark
+suno na mujhe tumse baat karni hai,0,benign,want_to_talk
+aaj khana kya khayega,0,benign,asking_about_food
+tumhare ghar sab theek hai,0,benign,family_check_in
+bhai kal raat ko kya kiya tumne,0,benign,asking_about_evening
+yar chalo chai peete hain,0,benign,tea_invitation
+tumhari ammi kaisi hain,0,benign,asking_about_mother
+aaj ka din bohat acha tha,0,benign,good_day
+main tumhari madad kar sakta hoon,0,benign,offering_help
+bhai mujhe tumhari zaroorat hai,0,benign,need_help
+yar bohat achi baat ki tumne,0,benign,praising_someone
+tum kab aa rahe ho,0,benign,asking_when_coming
+aaj to bohat maza aayega,0,benign,excited_about_today
+chalo jaldi milo mujhe tumse baat karni hai,0,benign,eager_to_meet
+bhai tension mat lo sab theek hai,0,benign,dont_worry
+yar main bohat khush hoon aaj,0,benign,feeling_happy
+kutta kamina,1,toxic,basic_insult
+tu pagal hai,1,toxic,calling_crazy
+bakwass band karo,1,toxic,stop_talking_nonsense
+harami insaan,1,toxic,calling_bastard
+tujhe sharam nahi aati,1,toxic,shame_on_you
+tu kya cheez hai,1,toxic,what_are_you
+nikal yahan se,1,toxic,get_out
+chup kar bewakoof,1,toxic,shut_up_idiot
+main teri jaan le lunga,1,toxic,direct_threat
+tu janwar se bhi bura hai,1,toxic,worse_than_animal
+kameeni aurat,1,toxic,insulting_woman
+saala kutta,1,toxic,abusive_prefix
+tu paida hi kyun hua,1,toxic,why_were_you_born
+bhenchod,1,toxic,severe_abuse
+madarchod,1,toxic,severe_abuse_2
+gandi zubaan band kar,1,toxic,dirty_mouth
+tujhe sabak sikhaoonga,1,toxic,will_teach_lesson
+tu kisi qabil nahi hai,1,toxic,worthless
+j0b availabl3 50000 p3r w33k s3nd pr0c3ssing f33,1,scam,leetspeak_fee
+j o b a v a i l a b l e s e n d f e e,1,scam,spacing_evasion
+job availble 50000 per wek send procesing fee,1,scam,misspelling
+job available 50000 per week send processing fee,1,scam,baseline_scam
+work from home 50000 weekly no experience needed send fee,1,scam,work_from_home_scam
+earn 50000 per week from home send registration fee,1,scam,earn_from_home
+urgent job opening send cv with fee 5000,1,scam,urgent_opening
+job opportunity whatsapp 03001234567 send fee first,1,scam,whatsapp_scam
+bhai job chahiye to fee bhejo pehle,1,scam,urdu_fee_first
+online job ghar baithe 50000 mahina fee bhejein,1,scam,ghar_baithe_job
+aaj hi apply karein sirf 2000 fee,1,scam,apply_today_fee
+limited seats hain jaldi fee bhejein,1,scam,urgency_tactic
+allah ka wasta fee bhej do job pakki hai,1,scam,religious_appeal
+registered company job offer send 3000 processing fee,1,scam,legitimacy_claim
+part time data entry 40000 monthly send 1500 joining fee,1,scam,data_entry_scam
+sirf link click karein aur 10000 jeetein,1,scam,click_link_win
+job available no interview required just send fee,1,scam,no_interview
+bina interview ke job 50000 per month fee bhejein,1,scam,no_interview_urdu
+guaranteed job placement advance fee 5000,1,scam,guaranteed_placement
+Imran Khan ne Lahore mein PTI ki rally ki,0,mixed,political_news_urdu
+yar I am bohat pareshan aaj kal,0,mixed,emotional_codeswitch
+bhai actually mujhe tumse ek baat karni hai,0,mixed,serious_talk
+government ne zaroori taaleem ke liye nai maloomat jari ki,0,mixed,urdu_script_news
+honestly yar yeh baat mujhe bilkul achi nahi lagi,0,mixed,honest_opinion
+main ne socha tha ke tum aaj aaoge,0,mixed,expectation
+literally bhai itna acha khana kabhi nahi khaya,0,mixed,food_praise
+kal raat ko party mein bohat maza aaya yar,0,mixed,party_recap
+mujhe lagta hai yeh faisla ghalat tha,0,mixed,disagreement
+tumhara kaam genuinely bohat acha hai,0,mixed,genuine_praise
+yeh scam nahi hai,0,edge,negation_mentions_scam
+main kabhi scam nahi karta,0,edge,negation_self_defense
+bhai yeh to bilkul bhi suspicious nahi lag raha,0,edge,negation_suspicious
+scam se bachna zaroori hai,0,edge,warning_about_scam
+job ki fee kitni hai normally,0,edge,asking_about_fee
+us ne kaha free iphone milay ga,0,edge,reporting_scam_claim
+bhai online paise kaise kamaye jaate hain,0,edge,asking_about_earning
+mujhe ek job offer aaya hai lekin fake lag raha hai,0,edge,suspicious_offer
+bhai ne books ke liye paise bheje,0,edge,money_for_books
+yar dost ne project mein madad maangi,0,edge,friend_project_help
+salary kab milegi is maheene ki,0,edge,asking_about_salary
+waah bhai waah kya baat hai,0,edge,admiration_sarcasm
+kya mast idea hai tumhara,0,edge,genuine_praise
+bohat shukriya aap ka,0,edge,formal_gratitude
+dua karein ke sab theek ho,0,edge,prayer_request
+yaar kya scene hai aaj kal,0,edge,casual_slang
+chalo koi masla nahi,0,edge,no_problem
+tumhara number mil sakta hai,0,edge,asking_for_number
+bhai suno ek kaam tha,0,edge,small_request
