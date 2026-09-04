@@ -4,7 +4,40 @@ from pathlib import Path
 
 import gradio as gr
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
 _FEEDBACK_PATH = Path("data/feedback.csv")
+
+
+def _build_flagged_chart(flagged_phrases):
+    """Build a horizontal bar chart of phrase risk contributions."""
+    if not flagged_phrases:
+        fig, ax = plt.subplots(figsize=(6, 1))
+        ax.text(0.5, 0.5, "No flagged phrases", ha="center", va="center",
+                fontsize=12, color="#888")
+        ax.axis("off")
+        return fig
+
+    phrases = [p["phrase"] for p in flagged_phrases[:8]]
+    contribs = [p["contribution"] for p in flagged_phrases[:8]]
+
+    fig, ax = plt.subplots(figsize=(8, max(2, len(phrases) * 0.5)))
+    colors = ["#e74c3c" if c >= 0.3 else "#f39c12" if c >= 0.15 else "#27ae60"
+              for c in contribs]
+    y_pos = range(len(phrases))
+    ax.barh(y_pos, contribs, color=colors, height=0.6)
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(phrases, fontsize=10)
+    ax.set_xlabel("Risk Contribution", fontsize=10)
+    ax.set_title("Flagged Phrase Contributions", fontsize=12, fontweight="bold")
+    ax.invert_yaxis()
+    ax.set_xlim(0, max(contribs) * 1.15)
+    for i, (c, p) in enumerate(zip(contribs, phrases)):
+        ax.text(c + 0.005, i, f"{c:.2f}", va="center", fontsize=9)
+    plt.tight_layout()
+    return fig
 
 
 def submit_feedback(
@@ -199,8 +232,10 @@ def _build_report(result: dict) -> str:
 
 def unified_text_analysis(text: str):
     """Run the full pipeline on text input."""
+    empty_chart = plt.figure(figsize=(6, 1))
+    plt.axis("off")
     if not text or not text.strip():
-        return "Please enter some text to analyze.", "", 0.0, 0.0, ""
+        return "Please enter some text to analyze.", "", 0.0, 0.0, "", empty_chart
 
     from app.models.model_manager import get_model_manager
 
@@ -212,12 +247,14 @@ def unified_text_analysis(text: str):
     norm_header = (
         f"Normalized (confidence {result['norm_confidence']:.2f}):\n{normalized}"
     )
+    chart = _build_flagged_chart(result.get("flagged_phrases", []))
     return (
         report,
         norm_header,
         result["risk_score"],
         result["risk_confidence"],
         normalized,
+        chart,
     )
 
 
@@ -266,6 +303,7 @@ def build_demo() -> gr.Blocks:
                 text_btn = gr.Button("Analyze", variant="primary")
                 text_report = gr.Markdown(label="Analysis Report")
                 text_norm = gr.Markdown(label="Normalized Text")
+                text_chart = gr.Plot(label="Phrase Risk Contributions")
 
                 fb_score = gr.State(0.0)
                 fb_conf = gr.State(0.0)
@@ -274,7 +312,7 @@ def build_demo() -> gr.Blocks:
                 text_btn.click(
                     unified_text_analysis,
                     inputs=[text_input],
-                    outputs=[text_report, text_norm, fb_score, fb_conf, fb_norm],
+                    outputs=[text_report, text_norm, fb_score, fb_conf, fb_norm, text_chart],
                 )
 
                 gr.Examples(
