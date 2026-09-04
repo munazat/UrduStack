@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 from app.utils.roman_urdu_map import ROMAN_TO_URDU
+from app.utils.rag_normalize import suggest_translation
 from app.utils.transliterate import transliterate
 
 _FREQ_MAP_PATH = Path("data/processed/roman_urdu_freq.json")
@@ -55,6 +56,11 @@ def _normalize_token(token: str) -> str:
         leading = token[: len(token) - len(token.lstrip(".,!?؛،"))]
         trailing = token[len(token.rstrip(".,!?؛،")) :]
         return f"{leading}{mapping}{trailing}"
+    rag_hint = suggest_translation(stripped)
+    if rag_hint:
+        leading = token[: len(token) - len(token.lstrip(".,!?؛،"))]
+        trailing = token[len(token.rstrip(".,!?؛،")) :]
+        return f"{leading}{rag_hint}{trailing}"
     return transliterate(token)
 
 

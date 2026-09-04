@@ -62,6 +62,37 @@ class TranscribeResponse(BaseModel):
     confidence: float
 
 
+class NERRequest(BaseModel):
+    text: str = Field(..., min_length=1)
+
+
+class NEREntity(BaseModel):
+    entity_group: str
+    word: str
+    score: float
+    start: int
+    end: int
+
+
+class NERResponse(BaseModel):
+    entities: List[NEREntity]
+
+
+class SimplifyRequest(BaseModel):
+    text: str = Field(..., min_length=1)
+
+
+class SimplificationChange(BaseModel):
+    original: str
+    simplified: str
+
+
+class SimplifyResponse(BaseModel):
+    simplified: str
+    changes: List[SimplificationChange]
+    complexity_ratio: float
+
+
 class FeedbackRequest(BaseModel):
     text: str = Field(..., min_length=1)
     normalized: Optional[str] = None
@@ -77,11 +108,14 @@ class FeedbackResponse(BaseModel):
 
 @router.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
+    from app.models.ner_model import get_ner_model
+
     return HealthResponse(
         status="ok",
         models_loaded={
-            "normalizer": True,  # rule-based normalizer is always available
+            "normalizer": True,
             "risk_scorer": risk_model.is_loaded,
+            "ner": get_ner_model().is_loaded,
         },
     )
 
@@ -114,6 +148,59 @@ def risk_score(payload: RiskScoreRequest) -> RiskScoreResponse:
 def transcribe(audio: UploadFile = File(...)) -> TranscribeResponse:
     text = transcribe_audio(audio.file)
     return TranscribeResponse(text=text, confidence=0.0)
+
+
+@router.post("/ner", response_model=NERResponse)
+def ner(payload: NERRequest) -> NERResponse:
+    from app.models.ner_model import get_ner_model
+
+    entities = get_ner_model().extract_entities(payload.text)
+    return NERResponse(entities=[NEREntity(**e) for e in entities])
+
+
+@router.post("/simplify", response_model=SimplifyResponse)
+def simplify_text(payload: SimplifyRequest) -> SimplifyResponse:
+    from app.utils.simplify import simplify, get_vocabulary_level
+
+    simplified, changes = simplify(payload.text)
+    level = get_vocabulary_level(payload.text)
+    return SimplifyResponse(
+        simplified=simplified,
+        changes=[SimplificationChange(**c) for c in changes],
+        complexity_ratio=level["complexity_ratio"],
+    )
+
+
+class AnalyzeRequest(BaseModel):
+    text: str = Field(..., min_length=1)
+
+
+class AnalyzeResponse(BaseModel):
+    normalized: str
+    norm_confidence: float
+    risk_score: float
+    risk_confidence: float
+    risk_level: str
+    flagged_phrases: List[FlaggedPhrase]
+    explanation: str
+    entities: List[NEREntity]
+
+
+@router.post("/analyze", response_model=AnalyzeResponse)
+def analyze_all(payload: AnalyzeRequest) -> AnalyzeResponse:
+    from app.models.model_manager import get_model_manager
+
+    result = get_model_manager().analyze_text(payload.text)
+    return AnalyzeResponse(
+        normalized=result["normalized"],
+        norm_confidence=result["norm_confidence"],
+        risk_score=result["risk_score"],
+        risk_confidence=result["risk_confidence"],
+        risk_level=result["risk_level"],
+        flagged_phrases=[FlaggedPhrase(**p) for p in result["flagged_phrases"]],
+        explanation=result["explanation"],
+        entities=[NEREntity(**e) for e in result["entities"]],
+    )
 
 
 @router.post("/feedback", response_model=FeedbackResponse)
