@@ -1,6 +1,101 @@
 import gradio as gr
 
 
+def _naive_keyword_score(text: str) -> dict:
+    """Baseline: exact English keyword matching only.
+    No normalization, no model, no code-switching awareness."""
+    from app.utils.risk import HIGH_RISK_PATTERNS
+
+    lower = text.lower()
+    matched = []
+    total = 0.0
+    for phrase, weight in HIGH_RISK_PATTERNS.items():
+        if phrase in lower:
+            matched.append(phrase)
+            total += weight
+
+    score = min(round(total, 2), 0.99)
+    predicted = "toxic/scam" if score >= 0.3 else "clean"
+    return {
+        "score": score,
+        "predicted": predicted,
+        "matched_keywords": matched,
+        "method": "Keyword matching (English only)",
+    }
+
+
+def comparison_analysis(text: str):
+    """Run naive baseline + full UrduStack pipeline side by side."""
+    if not text or not text.strip():
+        return "Please enter some text.", "", ""
+
+    naive = _naive_keyword_score(text)
+
+    from app.models.model_manager import get_model_manager
+    manager = get_model_manager()
+    full = manager.analyze_text(text)
+
+    naive_report = _build_naive_report(naive)
+    full_report = _build_report(full)
+    verdict = _build_verdict(naive, full)
+    return naive_report, full_report, verdict
+
+
+def _build_naive_report(naive: dict) -> str:
+    """Format the naive keyword baseline result as markdown."""
+    icon = "\U0001f534" if naive["predicted"] == "toxic/scam" else "\U0001f7e2"
+    lines = [
+        f"## {icon} Naive Baseline: {naive['predicted'].upper()}",
+        f"**Score:** {naive['score']:.2f}  |  **Method:** {naive['method']}",
+        "",
+    ]
+    if naive["matched_keywords"]:
+        lines.append("### Matched Keywords")
+        for kw in naive["matched_keywords"]:
+            lines.append(f"- `{kw}`")
+    else:
+        lines.append("*No keywords matched.*")
+    return "\n".join(lines)
+
+
+def _build_verdict(naive: dict, full: dict) -> str:
+    """Build a comparison verdict showing where UrduStack adds value."""
+    naive_label = naive["predicted"]
+    full_label = "toxic/scam" if full["risk_level"] in ("high", "medium") else "clean"
+    agree = naive_label == full_label
+
+    lines = ["## Verdict", ""]
+    lines.append(f"| | Naive Baseline | UrduStack |")
+    lines.append(f"|---|---|---|")
+    lines.append(f"| **Prediction** | {naive_label} | {full_label} |")
+    lines.append(f"| **Score** | {naive['score']:.2f} | {full['risk_score']:.2f} |")
+    lines.append("")
+
+    if agree:
+        lines.append("Both methods agree on this input.")
+    else:
+        if full_label == "toxic/scam" and naive_label == "clean":
+            lines.append(
+                "**UrduStack caught risky content the naive baseline missed.** "
+                "This is the value of normalization + fine-tuned model: "
+                "it understands Roman Urdu, code-switched text, and context "
+                "that simple English keyword matching cannot."
+            )
+        else:
+            lines.append(
+                "The methods disagree. The full pipeline has additional context "
+                "from normalization and entity recognition to make a more "
+                "informed decision."
+            )
+
+    if full.get("entities"):
+        lines.append("")
+        lines.append(f"**Entities found:** {len(full['entities'])} "
+                     f"(naive baseline: 0 — no NER capability)")
+
+    return "\n".join(lines)
+
+
 def _build_report(result: dict) -> str:
     """Build a unified markdown report from the full analysis pipeline."""
     lines = []
@@ -163,6 +258,44 @@ def build_demo() -> gr.Blocks:
                     unified_audio_analysis,
                     inputs=[audio_input],
                     outputs=[audio_report, audio_transcript],
+                )
+
+            with gr.Tab("Comparison"):
+                gr.Markdown(
+                    "### Naive Keyword Baseline vs. UrduStack\n"
+                    "See how simple English keyword matching fails on "
+                    "Roman Urdu, code-switched text, and context — "
+                    "while the full UrduStack pipeline catches it."
+                )
+                comp_input = gr.Textbox(
+                    label="Input (try Roman Urdu scam or toxic text)",
+                    placeholder="free iphone jeetny k liye link click karein",
+                    lines=3,
+                )
+                comp_btn = gr.Button("Compare", variant="primary")
+
+                with gr.Row():
+                    comp_naive = gr.Markdown(label="Naive Baseline")
+                    comp_full = gr.Markdown(label="UrduStack Full Pipeline")
+
+                comp_verdict = gr.Markdown(label="Verdict")
+
+                comp_btn.click(
+                    comparison_analysis,
+                    inputs=[comp_input],
+                    outputs=[comp_naive, comp_full, comp_verdict],
+                )
+
+                gr.Examples(
+                    examples=[
+                        ["free iphone jeetny k liye link click karein"],
+                        ["bhai ye to scam lag raha hai, paise mat bhejo"],
+                        ["job available, 50000 per week, send processing fee"],
+                        ["tumhara account block ho gaya hai, abhi call karein"],
+                        ["yar normal baat hai, koi tension nahi"],
+                        ["send money now or your account will be blocked"],
+                    ],
+                    inputs=[comp_input],
                 )
 
         gr.Markdown(
