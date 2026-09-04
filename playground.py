@@ -422,8 +422,23 @@ def build_demo() -> gr.Blocks:
 
 
 def main():
+    import os
+    import sys
+
     demo = build_demo()
-    demo.launch(server_name="0.0.0.0", server_port=7860)
+
+    in_colab = "COLAB_GPU" in os.environ or "google.colab" in sys.modules
+    share_env = os.environ.get("SHARE", "").lower()
+    share = in_colab or share_env in ("1", "true", "yes")
+
+    try:
+        if share:
+            demo.launch(share=True, quiet=False)
+        else:
+            demo.launch(server_name="0.0.0.0", server_port=7860)
+    except Exception as exc:
+        print(f"launch() failed ({exc}); retrying without share...")
+        demo.launch(server_name="0.0.0.0", server_port=7860)
 
 
 if __name__ == "__main__":
