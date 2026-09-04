@@ -57,13 +57,24 @@ def load_dataset(mode="full"):
 
 def main():
     mode = "full"
-    for arg in sys.argv[1:]:
-        if arg == "--mode":
-            continue
-        if arg in ("full", "adversarial"):
-            mode = arg
+    threshold = THRESHOLD
+    args = sys.argv[1:]
+    i = 0
+    while i < len(args):
+        if args[i] == "--mode" and i + 1 < len(args):
+            mode = args[i + 1]
+            i += 2
+        elif args[i] == "--threshold" and i + 1 < len(args):
+            threshold = float(args[i + 1])
+            i += 2
+        elif args[i] in ("full", "adversarial"):
+            mode = args[i]
+            i += 1
+        else:
+            i += 1
 
     examples = load_dataset(mode)
+    print(f"Threshold: {threshold}")
 
     if not os.path.exists(REPO_ROOT / "models" / "risk_lora" / "adapter_config.json"):
         print("ERROR: trained model not found at models/risk_lora/")
@@ -94,7 +105,7 @@ def main():
             score = result["risk_score"]
             confidence = result["risk_confidence"]
             risk_level = result["risk_level"]
-            predicted = 1 if score >= THRESHOLD else 0
+            predicted = 1 if score >= threshold else 0
             correct = predicted == expected
             flagged = [p["phrase"] for p in result.get("flagged_phrases", [])]
             entities = [e["word"] for e in result.get("entities", [])]
@@ -212,18 +223,20 @@ def main():
             if r["flagged_phrases"]:
                 print(f"    Flagged:   {r['flagged_phrases']}")
 
-    results_path = TESTS_DIR / f"eval_results_{mode}.csv"
+    tag = f"{mode}_t{threshold}"
+    results_path = TESTS_DIR / f"eval_results_{tag}.csv"
     fieldnames = list(results[0].keys())
     with open(results_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(results)
 
-    metrics_path = TESTS_DIR / f"eval_metrics_{mode}.json"
+    metrics_path = TESTS_DIR / f"eval_metrics_{tag}.json"
     import json
 
     metrics = {
         "mode": mode,
+        "threshold": threshold,
         "total": total,
         "passed": passed,
         "accuracy": round(accuracy, 4),
