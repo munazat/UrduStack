@@ -1,4 +1,45 @@
+import csv
+from datetime import datetime, timezone
+from pathlib import Path
+
 import gradio as gr
+
+_FEEDBACK_PATH = Path("data/feedback.csv")
+
+
+def submit_feedback(
+    text: str,
+    normalized: str,
+    score: float,
+    confidence: float,
+    correct_label: str,
+    comment: str,
+) -> str:
+    """Append a feedback row to data/feedback.csv for active learning."""
+    if not text or not correct_label:
+        return ""
+    _FEEDBACK_PATH.parent.mkdir(parents=True, exist_ok=True)
+    file_exists = _FEEDBACK_PATH.exists()
+    with _FEEDBACK_PATH.open("a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "timestamp", "text", "normalized", "score",
+                "confidence", "correct_label", "comment",
+            ],
+        )
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "text": text,
+            "normalized": normalized or "",
+            "score": score,
+            "confidence": confidence,
+            "correct_label": correct_label,
+            "comment": comment or "",
+        })
+    return f"Feedback logged ({correct_label}). Thank you!"
 
 
 def _naive_keyword_score(text: str) -> dict:
@@ -159,7 +200,7 @@ def _build_report(result: dict) -> str:
 def unified_text_analysis(text: str):
     """Run the full pipeline on text input."""
     if not text or not text.strip():
-        return "Please enter some text to analyze.", ""
+        return "Please enter some text to analyze.", "", 0.0, 0.0, ""
 
     from app.models.model_manager import get_model_manager
 
@@ -171,7 +212,13 @@ def unified_text_analysis(text: str):
     norm_header = (
         f"Normalized (confidence {result['norm_confidence']:.2f}):\n{normalized}"
     )
-    return report, norm_header
+    return (
+        report,
+        norm_header,
+        result["risk_score"],
+        result["risk_confidence"],
+        normalized,
+    )
 
 
 def unified_audio_analysis(audio_path):
@@ -220,10 +267,14 @@ def build_demo() -> gr.Blocks:
                 text_report = gr.Markdown(label="Analysis Report")
                 text_norm = gr.Markdown(label="Normalized Text")
 
+                fb_score = gr.State(0.0)
+                fb_conf = gr.State(0.0)
+                fb_norm = gr.State("")
+
                 text_btn.click(
                     unified_text_analysis,
                     inputs=[text_input],
-                    outputs=[text_report, text_norm],
+                    outputs=[text_report, text_norm, fb_score, fb_conf, fb_norm],
                 )
 
                 gr.Examples(
@@ -241,6 +292,30 @@ def build_demo() -> gr.Blocks:
                         ],
                     ],
                     inputs=[text_input],
+                )
+
+                gr.Markdown("---\n### Active Learning Feedback")
+                with gr.Row():
+                    fb_label = gr.Dropdown(
+                        choices=[
+                            "correct", "low_risk", "medium_risk",
+                            "high_risk", "spam", "not_spam",
+                        ],
+                        value="correct",
+                        label="Is this result correct?",
+                    )
+                    fb_comment = gr.Textbox(
+                        label="Comment (optional)",
+                        placeholder="e.g. this is actually benign...",
+                        lines=1,
+                    )
+                fb_btn = gr.Button("Submit Feedback")
+                fb_status = gr.Markdown()
+
+                fb_btn.click(
+                    submit_feedback,
+                    inputs=[text_input, fb_norm, fb_score, fb_conf, fb_label, fb_comment],
+                    outputs=[fb_status],
                 )
 
             with gr.Tab("Speech Analysis"):
