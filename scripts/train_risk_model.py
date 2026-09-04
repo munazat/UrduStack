@@ -22,6 +22,7 @@ from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_sc
 from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
+    EarlyStoppingCallback,
     Trainer,
     TrainingArguments,
     set_seed,
@@ -166,22 +167,28 @@ def compute_metrics(eval_pred):
     }
 
 
-def find_temperature(model, tokenizer, val_df, device="cuda"):
-    """Find a single temperature parameter that minimizes NLL on validation."""
+def find_temperature(model, tokenizer, val_df, device="cuda", batch_size=256):
+    """Find a single temperature parameter that minimizes NLL on validation.
+    Processes data in batches to avoid OOM with large validation sets."""
     model.eval()
     texts = val_df["text"].tolist()
     labels = torch.tensor(val_df["label"].values, dtype=torch.long).to(device)
 
-    enc = tokenizer(
-        texts,
-        padding=True,
-        truncation=True,
-        max_length=128,
-        return_tensors="pt",
-    ).to(device)
+    all_logits = []
+    for start in range(0, len(texts), batch_size):
+        batch_texts = texts[start : start + batch_size]
+        enc = tokenizer(
+            batch_texts,
+            padding=True,
+            truncation=True,
+            max_length=128,
+            return_tensors="pt",
+        ).to(device)
+        with torch.no_grad():
+            logits = model(**enc).logits
+        all_logits.append(logits)
 
-    with torch.no_grad():
-        logits = model(**enc).logits
+    logits = torch.cat(all_logits, dim=0)
 
     best_temp = 1.0
     best_nll = float("inf")
@@ -204,8 +211,11 @@ def main():
     train_df, val_df, test_df = load_data(
         args.data_path, args.max_samples, args.val_samples, args.test_samples
     )
+    n_toxic = train_df["label"].sum()
+    n_clean = len(train_df) - n_toxic
     print(
-        f"Train: {len(train_df)} | Val: {len(val_df)} | Test: {len(test_df)}"
+        f"Train: {len(train_df)} (toxic={n_toxic}, clean={n_clean}) | "
+        f"Val: {len(val_df)} | Test: {len(test_df)}"
     )
 
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
@@ -214,9 +224,6 @@ def main():
         num_labels=2,
     )
 
-    # Let PEFT pick target modules automatically — its SEQ_CLS default covers
-    # the attention projections without accidentally hitting the classifier head,
-    # which was crashing get_peft_model when "dense" was listed explicitly.
     lora_config = LoraConfig(
         task_type=TaskType.SEQ_CLS,
         r=16,
@@ -227,19 +234,35 @@ def main():
     model = get_peft_model(base_model, lora_config)
     model.print_trainable_parameters()
 
-    # Plain torch Datasets — bypass the HF datasets formatter entirely.
-    # This is the actual fix for Colab's torchvision.io.VideoReader crash:
-    # Trainer's internal _prepare_dataset() re-applies torch formatting even
-    # when we set numpy, which re-triggers the broken import at batch time.
+    # Compute class weights to handle imbalanced datasets.
+    # Weight inversely proportional to class frequency so the model
+    # doesn't just predict the majority class.
+    total = len(train_df)
+    w_clean = total / (2.0 * max(n_clean, 1))
+    w_toxic = total / (2.0 * max(n_toxic, 1))
+    class_weights = torch.tensor([w_clean, w_toxic], dtype=torch.float32)
+    print(f"Class weights: clean={w_clean:.3f}, toxic={w_toxic:.3f}")
+
+    # Custom Trainer that applies class-weighted cross-entropy loss.
+    class WeightedBCETrainer(Trainer):
+        def __init__(self, class_weights, *a, **kw):
+            super().__init__(*a, **kw)
+            self.class_weights = class_weights
+
+        def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
+            labels = inputs.pop("labels")
+            outputs = model(**inputs)
+            logits = outputs.logits
+            weight = self.class_weights.to(logits.device).to(logits.dtype)
+            loss_fct = torch.nn.CrossEntropyLoss(weight=weight)
+            loss = loss_fct(logits, labels)
+            return (loss, outputs) if return_outputs else loss
+
     train_ds = _TokenizedDataset(train_df, tokenizer)
     val_ds = _TokenizedDataset(val_df, tokenizer)
 
-    # fp16 halves memory and speeds up training on CUDA. It is disabled on CPU
-    # so the same script can still run (slowly) for smoke tests.
     use_fp16 = torch.cuda.is_available()
 
-    # transformers >=4.49 renamed evaluation_strategy -> eval_strategy.
-    # Try the new name first; fall back to the old one if it rejects the kwarg.
     common_args = dict(
         output_dir=args.output_dir,
         num_train_epochs=args.num_epochs,
@@ -248,6 +271,7 @@ def main():
         learning_rate=2e-4,
         weight_decay=0.01,
         save_strategy="epoch",
+        save_total_limit=2,
         logging_strategy="steps",
         logging_steps=50,
         load_best_model_at_end=True,
@@ -264,25 +288,27 @@ def main():
     except TypeError:
         training_args = TrainingArguments(evaluation_strategy="epoch", **common_args)
 
-    # transformers >=4.49 removed the `tokenizer` Trainer kwarg in favour of
-    # `processing_class`. Try the new name first, fall back to the old one.
     try:
-        trainer = Trainer(
+        trainer = WeightedBCETrainer(
+            class_weights=class_weights,
             model=model,
             args=training_args,
             train_dataset=train_ds,
             eval_dataset=val_ds,
             processing_class=tokenizer,
             compute_metrics=compute_metrics,
+            callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
         )
     except TypeError:
-        trainer = Trainer(
+        trainer = WeightedBCETrainer(
+            class_weights=class_weights,
             model=model,
             args=training_args,
             train_dataset=train_ds,
             eval_dataset=val_ds,
             tokenizer=tokenizer,
             compute_metrics=compute_metrics,
+            callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
         )
 
     trainer.train()
