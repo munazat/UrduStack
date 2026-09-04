@@ -59,6 +59,31 @@ python playground.py
 
 Then open http://localhost:7860.
 
+## Live demo (hackathon submission URL)
+
+Open [`notebooks/launch_demo.ipynb`](notebooks/launch_demo.ipynb) in
+Google Colab, enable the T4 GPU runtime, and run all 5 cells. After
+3–5 minutes, cell 5 prints a public URL like:
+
+    Running on public URL: https://<hash>.gradio.live
+
+That URL is valid for **72 hours** and can be shared with anyone — no
+login, no setup. If it expires, re-run the notebook to get a fresh one.
+
+### What the evaluator sees
+
+- **Text Analysis**: Urdu / Roman Urdu / code-switched text → normalized
+  Urdu script, risk score with phrase-level contributions, NER entities,
+  and a plain-language recommendation.
+- **Speech Analysis**: record or upload Urdu audio → Whisper transcription
+  → same analysis pipeline.
+- **Comparison**: naive English keyword baseline vs. UrduStack — shows
+  where normalization + fine-tuned model catches scams the baseline misses.
+
+**Pipeline:** Normalize → Risk Score → NER → Entity Context → Simplify →
+Recommendation. **Risk model:** LoRA XLM-RoBERTa, calibrated (T=1.41),
+threshold 0.3, accuracy 88.8%, precision 97.0%, recall 75.6%, F1 85.0%.
+
 ## Build with Docker / Hugging Face Spaces
 
 ```bash
