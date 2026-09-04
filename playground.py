@@ -1,118 +1,117 @@
 import gradio as gr
 
-from app.models.risk_model import RiskModel
-from app.utils.normalization import normalize_with_segments
 
-_risk_model = RiskModel()
-
-
-def analyze(text: str):
-    if not text or not text.strip():
-        return "", "", "Please enter some text."
-
-    normalized, confidence, _segments = normalize_with_segments(text)
-    score, rconf, risk_level, flagged_phrases, explanation = _risk_model.score(text)
-
-    flagged_text = "\n".join(
-        f"- `{p['phrase']}` (contribution {p['contribution']:.2f})"
-        for p in flagged_phrases
-    )
-    if not flagged_text:
-        flagged_text = "No phrases flagged."
-
-    summary = (
-        f"**Risk level:** {risk_level.upper()}\n\n"
-        f"**Score:** {score:.2f} | **Confidence:** {rconf:.2f}\n\n"
-        f"**Explanation:** {explanation}\n\n"
-        f"**Normalized text** (confidence {confidence:.2f}):\n{normalized}\n\n"
-        f"**Flagged phrases:**\n{flagged_text}"
-    )
-    return normalized, f"{score:.2f}", summary
-
-
-def find_entities(text: str):
-    if not text or not text.strip():
-        return "Please enter some text."
-
-    from app.models.ner_model import get_ner_model
-
-    entities = get_ner_model().extract_entities(text)
-    if not entities:
-        return "No entities found."
-
+def _build_report(result: dict) -> str:
+    """Build a unified markdown report from the full analysis pipeline."""
     lines = []
-    for e in entities:
-        icon = {"PERSON": "👤", "LOCATION": "📍", "ORGANIZATION": "🏢",
-                "DATE": "📅", "MISC": "🏷️"}.get(
-            e["entity_group"], "🏷️"
-        )
-        lines.append(
-            f"{icon} **{e['word']}** — {e['entity_group']} "
-            f"(confidence {e['score']:.2f})"
-        )
-    return "\n\n".join(lines)
 
+    risk_emoji = {"high": "\U0001f534", "medium": "\U0001f7e0", "low": "\U0001f7e2"}
+    risk_icon = risk_emoji.get(result["risk_level"], "")
 
-def simplify_text(text: str):
-    if not text or not text.strip():
-        return "", "Please enter some text."
-
-    from app.utils.simplify import simplify, get_vocabulary_level
-
-    simplified, changes = simplify(text)
-    level = get_vocabulary_level(text)
-
-    if not changes:
-        return simplified, "No complex words found. Text is already simple."
-
-    lines = [f"**Simplified {len(changes)} word(s):**\n"]
-    for c in changes:
-        lines.append(f"- `{c['original']}` → **{c['simplified']}**")
+    lines.append(f"## {risk_icon} Risk: {result['risk_level'].upper()}")
     lines.append(
-        f"\n**Complexity:** {level['complex_words']}/{level['total_words']} words "
-        f"({level['complexity_ratio']*100:.0f}% complex)"
+        f"**Score:** {result['risk_score']:.2f}  |  "
+        f"**Confidence:** {result['risk_confidence']:.2f}"
     )
-    return simplified, "\n".join(lines)
+    lines.append("")
+
+    if result.get("entities"):
+        lines.append("### Entities Detected")
+        icon_map = {
+            "PERSON": "\U0001f464",
+            "LOCATION": "\U0001f4cd",
+            "ORGANIZATION": "\U0001f3e2",
+            "DATE": "\U0001f4c5",
+            "MISC": "\U0001f3f7\ufe0f",
+        }
+        for e in result["entities"]:
+            icon = icon_map.get(e["entity_group"], "\U0001f3f7\ufe0f")
+            lines.append(
+                f"{icon} **{e['word']}** \u2014 {e['entity_group']} "
+                f"({e['score']:.2f})"
+            )
+        lines.append("")
+
+    if result.get("entity_context"):
+        lines.append("### Entity Context")
+        for ctx in result["entity_context"]:
+            lines.append(f"- {ctx}")
+        lines.append("")
+
+    if result.get("flagged_phrases"):
+        lines.append("### Flagged Phrases")
+        for p in result["flagged_phrases"][:5]:
+            lines.append(
+                f"- `{p['phrase']}` (contribution: {p['contribution']:.2f})"
+            )
+        lines.append("")
+
+    lines.append("### Explanation")
+    lines.append(result["explanation"])
+    lines.append("")
+
+    simplified = result.get("simplified_explanation", "")
+    if simplified and simplified != result["explanation"]:
+        lines.append("### Plain Language")
+        lines.append(simplified)
+        lines.append("")
+
+    lines.append(f"> **Recommendation:** {result.get('recommendation', '')}")
+
+    return "\n".join(lines)
 
 
-def transcribe_and_analyze(audio_path):
+def unified_text_analysis(text: str):
+    """Run the full pipeline on text input."""
+    if not text or not text.strip():
+        return "Please enter some text to analyze.", ""
+
+    from app.models.model_manager import get_model_manager
+
+    manager = get_model_manager()
+    result = manager.analyze_text(text)
+
+    report = _build_report(result)
+    normalized = result["normalized"]
+    norm_header = (
+        f"Normalized (confidence {result['norm_confidence']:.2f}):\n{normalized}"
+    )
+    return report, norm_header
+
+
+def unified_audio_analysis(audio_path):
+    """Transcribe audio, then run the full pipeline."""
     if audio_path is None:
-        return "", "", "Please record or upload audio.", ""
+        return "Please record or upload audio.", ""
 
     from app.utils.transcription import transcribe_audio_path
+    from app.models.model_manager import get_model_manager
 
-    text, conf = transcribe_audio_path(audio_path)
+    text, speech_conf = transcribe_audio_path(audio_path)
     if not text:
-        return "", "", "Could not transcribe audio. Try speaking more clearly.", ""
+        return "Could not transcribe audio. Try speaking more clearly.", ""
 
-    normalized, norm_conf, _segments = normalize_with_segments(text)
-    score, rconf, risk_level, flagged_phrases, explanation = _risk_model.score(text)
+    manager = get_model_manager()
+    result = manager.analyze_text(text)
 
-    flagged_text = "\n".join(
-        f"- `{p['phrase']}` (contribution {p['contribution']:.2f})"
-        for p in flagged_phrases
+    report = _build_report(result)
+    transcript_info = (
+        f"**Transcription** (confidence {speech_conf:.2f}):\n\n{text}\n\n"
+        f"**Normalized:** {result['normalized']}"
     )
-    if not flagged_text:
-        flagged_text = "No phrases flagged."
-
-    summary = (
-        f"**Risk level:** {risk_level.upper()}\n\n"
-        f"**Score:** {score:.2f} | **Confidence:** {rconf:.2f}\n\n"
-        f"**Explanation:** {explanation}\n\n"
-        f"**Flagged phrases:**\n{flagged_text}"
-    )
-    return text, normalized, summary, f"Speech confidence: {conf:.2f}"
+    return report, transcript_info
 
 
-def main():
+def build_demo() -> gr.Blocks:
     with gr.Blocks(
-        title="UrduStack — Code-Switch-Aware Urdu NLP",
+        title="UrduStack \u2014 Unified Urdu NLP Analysis",
         theme=gr.themes.Soft(),
     ) as demo:
         gr.Markdown(
             "# UrduStack\n"
-            "Code-switch-aware Urdu NLP: normalization, risk scoring, "
-            "and speech-to-text in one pipeline."
+            "Unified Urdu NLP infrastructure: normalization, risk scoring, "
+            "entity recognition, and plain-language explanations \u2014 "
+            "all in one pipeline."
         )
 
         with gr.Tabs():
@@ -123,71 +122,61 @@ def main():
                     lines=3,
                 )
                 text_btn = gr.Button("Analyze", variant="primary")
-                with gr.Row():
-                    norm_out = gr.Textbox(label="Normalized Urdu", interactive=False)
-                    score_out = gr.Textbox(label="Risk Score", interactive=False)
-                analysis_out = gr.Markdown(label="Analysis")
+                text_report = gr.Markdown(label="Analysis Report")
+                text_norm = gr.Markdown(label="Normalized Text")
+
                 text_btn.click(
-                    analyze,
+                    unified_text_analysis,
                     inputs=[text_input],
-                    outputs=[norm_out, score_out, analysis_out],
+                    outputs=[text_report, text_norm],
                 )
 
-            with gr.Tab("Speech-to-Text"):
+                gr.Examples(
+                    examples=[
+                        ["yar mujhe pareshan mat karo bro"],
+                        ["job available, 50000 per week, send processing fee"],
+                        ["Imran Khan ne Lahore mein PTI ki rally ki"],
+                        ["bhai ye to scam lag raha hai, paise mat bhejo"],
+                        ["free iphone jeetny k liye link click karein"],
+                        [
+                            "\u062d\u06a9\u0648\u0645\u062a \u0646\u06d2 "
+                            "\u0636\u0631\u0648\u0631\u06cc \u062a\u0639\u0644\u06cc\u0645 "
+                            "\u06a9\u06d2 \u0644\u06cc\u06d2 \u0646\u0626\u06cc "
+                            "\u0645\u0639\u0644\u0648\u0645\u0627\u062a \u062c\u0627\u0631\u06cc \u06a9\u06cc"
+                        ],
+                    ],
+                    inputs=[text_input],
+                )
+
+            with gr.Tab("Speech Analysis"):
                 audio_input = gr.Audio(
                     label="Record or upload Urdu audio",
                     type="filepath",
                 )
-                audio_btn = gr.Button("Transcribe & Analyze", variant="primary")
-                transcript_out = gr.Textbox(label="Transcription", interactive=False)
-                audio_norm_out = gr.Textbox(label="Normalized Urdu", interactive=False)
-                audio_analysis_out = gr.Markdown(label="Analysis")
-                audio_conf_out = gr.Textbox(label="Speech Confidence", interactive=False)
+                audio_btn = gr.Button(
+                    "Transcribe & Analyze", variant="primary"
+                )
+                audio_report = gr.Markdown(label="Analysis Report")
+                audio_transcript = gr.Markdown(label="Transcription")
+
                 audio_btn.click(
-                    transcribe_and_analyze,
+                    unified_audio_analysis,
                     inputs=[audio_input],
-                    outputs=[
-                        transcript_out,
-                        audio_norm_out,
-                        audio_analysis_out,
-                        audio_conf_out,
-                    ],
+                    outputs=[audio_report, audio_transcript],
                 )
 
-            with gr.Tab("Named Entities"):
-                ner_input = gr.Textbox(
-                    label="Input text",
-                    placeholder="Imran Khan ne Lahore mein PTI ki rally ki...",
-                    lines=3,
-                )
-                ner_btn = gr.Button("Find Entities", variant="primary")
-                ner_out = gr.Markdown(label="Entities")
-                ner_btn.click(find_entities, inputs=[ner_input], outputs=[ner_out])
-
-            with gr.Tab("Simplify"):
-                simp_input = gr.Textbox(
-                    label="Urdu text to simplify",
-                    placeholder="حکومت نے ضروری تعلیم کے لیے نئی معلومات جاری کی...",
-                    lines=3,
-                )
-                simp_btn = gr.Button("Simplify", variant="primary")
-                simp_out = gr.Textbox(label="Simplified text", interactive=False)
-                simp_changes = gr.Markdown(label="Changes")
-                simp_btn.click(
-                    simplify_text, inputs=[simp_input], outputs=[simp_out, simp_changes]
-                )
-
-        gr.Examples(
-            examples=[
-                ["yar mujhe pareshan mat karo bro"],
-                ["job available, 50000 per week, send processing fee"],
-                ["aaj weather bohat achha hai"],
-                ["bhai ye to scam lag raha hai, paise mat bhejo"],
-                ["free iphone jeetny k liye link click karein"],
-            ],
-            inputs=[text_input],
+        gr.Markdown(
+            "---\n"
+            "**Pipeline:** Normalize \u2192 Risk Score \u2192 "
+            "Entity Recognition \u2192 Context Enrichment \u2192 "
+            "Simplify \u2192 Recommendation"
         )
 
+    return demo
+
+
+def main():
+    demo = build_demo()
     demo.launch(server_name="0.0.0.0", server_port=7860)
 
 

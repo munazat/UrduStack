@@ -3,39 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UrduStack Playground</title>
+  <title>UrduStack — Unified Urdu NLP Analysis</title>
   <style>
-    body { font-family: system-ui, -apple-system, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; color: #1f2937; }
+    body { font-family: system-ui, -apple-system, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; color: #1f2937; }
     h1 { font-size: 1.75rem; margin-bottom: 0.25rem; }
     .subtitle { color: #6b7280; margin-bottom: 1.5rem; }
-    textarea { width: 100%; min-height: 100px; padding: 0.75rem; font-size: 1rem; border: 1px solid #d1d5db; border-radius: 0.5rem; resize: vertical; }
+    textarea { width: 100%; min-height: 100px; padding: 0.75rem; font-size: 1rem; border: 1px solid #d1d5db; border-radius: 0.5rem; resize: vertical; box-sizing: border-box; }
     button { margin-top: 0.75rem; padding: 0.6rem 1.2rem; font-size: 1rem; background: #2563eb; color: white; border: none; border-radius: 0.5rem; cursor: pointer; }
     button:disabled { background: #93c5fd; cursor: wait; }
-    .result { margin-top: 1.5rem; padding: 1rem; background: #f9fafb; border-radius: 0.5rem; border: 1px solid #e5e7eb; }
-    .result h3 { margin-top: 0; font-size: 1rem; color: #374151; }
-    .score { font-size: 1.5rem; font-weight: 700; }
-    .score.high { color: #dc2626; }
-    .score.medium { color: #d97706; }
-    .score.low { color: #16a34a; }
+    .report { margin-top: 1.5rem; padding: 1.25rem; background: #f9fafb; border-radius: 0.5rem; border: 1px solid #e5e7eb; }
+    .report h3 { margin-top: 0; }
+    .verdict { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .verdict.high { color: #dc2626; }
+    .verdict.medium { color: #d97706; }
+    .verdict.low { color: #16a34a; }
+    .section { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; }
+    .section h3 { font-size: 1rem; color: #374151; margin-bottom: 0.5rem; }
+    .entity { display: inline-block; padding: 0.25rem 0.5rem; margin: 0.25rem 0.25rem 0 0; background: #dbeafe; color: #1e40af; border-radius: 9999px; font-size: 0.875rem; }
     .phrase { display: inline-block; padding: 0.25rem 0.5rem; margin: 0.25rem 0.25rem 0 0; background: #fee2e2; color: #991b1b; border-radius: 9999px; font-size: 0.875rem; }
+    .context-note { color: #92400e; font-size: 0.875rem; margin-top: 0.25rem; }
+    .recommendation { margin-top: 1rem; padding: 0.75rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 0.5rem; font-size: 0.95rem; }
+    .recommendation.warn { background: #fffbeb; border-color: #fde68a; }
+    .recommendation.danger { background: #fef2f2; border-color: #fecaca; }
     .feedback { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; }
-    .feedback select, .feedback textarea { width: 100%; margin-top: 0.5rem; padding: 0.5rem; font-size: 0.95rem; border: 1px solid #d1d5db; border-radius: 0.375rem; }
+    .feedback select, .feedback textarea { width: 100%; margin-top: 0.5rem; padding: 0.5rem; font-size: 0.95rem; border: 1px solid #d1d5db; border-radius: 0.375rem; box-sizing: border-box; }
     .feedback button { background: #4b5563; }
     .feedback button:disabled { background: #9ca3af; }
     .loading { color: #6b7280; }
     .error { color: #dc2626; }
     .success { color: #16a34a; }
+    .normalized { direction: rtl; font-size: 1.1rem; padding: 0.5rem; background: #f3f4f6; border-radius: 0.375rem; }
+    .pipeline-note { color: #9ca3af; font-size: 0.8rem; margin-top: 1.5rem; }
   </style>
 </head>
 <body>
-  <h1>UrduStack Playground</h1>
-  <p class="subtitle">Mixed Urdu / Roman Urdu / English → normalized Urdu + explainable risk score</p>
+  <h1>UrduStack</h1>
+  <p class="subtitle">Unified Urdu NLP: normalization, risk scoring, entity recognition, and plain-language explanations</p>
 
   <textarea id="input" placeholder="yar mujhe pareshan mat karo bro...">job available, 50000 per week, send processing fee</textarea>
   <br>
   <button id="analyze" onclick="analyze()">Analyze</button>
 
-  <div id="output" class="result" style="display:none;"></div>
+  <div id="output" style="display:none;"></div>
+
+  <p class="pipeline-note">Pipeline: Normalize → Risk Score → Entity Recognition → Context Enrichment → Simplify → Recommendation</p>
 
   <script>
     let lastResult = null;
@@ -48,60 +59,109 @@
 
       btn.disabled = true;
       out.style.display = 'block';
-      out.innerHTML = '<p class="loading">Analyzing...</p>';
+      out.innerHTML = '<p class="loading">Running full analysis pipeline...</p>';
 
       try {
-        const [normRes, riskRes] = await Promise.all([
-          fetch('/normalize', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({text}) }),
-          fetch('/risk-score', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({text}) })
-        ]);
-        if (!normRes.ok || !riskRes.ok) throw new Error('API request failed');
-        const norm = await normRes.json();
-        const risk = await riskRes.json();
-        lastResult = { text, norm, risk };
+        const res = await fetch('/analyze', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({text})
+        });
+        if (!res.ok) throw new Error('API request failed (' + res.status + ')');
+        const data = await res.json();
+        lastResult = { text, data };
 
-        const phrases = risk.flagged_phrases.map(p => `<span class="phrase">${p.phrase} (${p.contribution.toFixed(2)})</span>`).join('');
-        const feedbackHtml = risk.confidence < 0.7 ? feedbackForm() : '';
-        out.innerHTML = `
-          <h3>Normalized</h3>
-          <p dir="rtl" style="font-size:1.1rem;">${norm.normalized}</p>
-          <p><small>Confidence: ${norm.confidence.toFixed(2)}</small></p>
-
-          <h3>Risk Assessment</h3>
-          <p class="score ${risk.risk_level}">${risk.score.toFixed(2)} — ${risk.risk_level.toUpperCase()}</p>
-          <p><strong>Confidence:</strong> ${risk.confidence.toFixed(2)}</p>
-          <p>${risk.explanation}</p>
-
-          <h3>Flagged Phrases</h3>
-          <div>${phrases || '<span style="color:#6b7280;">None</span>'}</div>
-          ${feedbackHtml}
-        `;
+        out.innerHTML = renderReport(data);
       } catch (err) {
-        out.innerHTML = `<p class="error">Error: ${err.message}</p>`;
+        out.innerHTML = '<p class="error">Error: ' + err.message + '</p>';
       } finally {
         btn.disabled = false;
       }
     }
 
+    function renderReport(d) {
+      const riskClass = d.risk_level;
+      const riskLabel = d.risk_level.toUpperCase();
+      let html = '<div class="report">';
+
+      // Verdict
+      html += '<div class="verdict ' + riskClass + '">' + riskLabel + '</div>';
+      html += '<p><strong>Score:</strong> ' + d.risk_score.toFixed(2) +
+              ' &nbsp;|&nbsp; <strong>Confidence:</strong> ' + d.risk_confidence.toFixed(2) + '</p>';
+
+      // Normalized text
+      html += '<div class="section"><h3>Normalized Text</h3>';
+      html += '<div class="normalized">' + escHtml(d.normalized) + '</div>';
+      html += '<p><small>Normalization confidence: ' + d.norm_confidence.toFixed(2) + '</small></p>';
+      html += '</div>';
+
+      // Entities
+      if (d.entities && d.entities.length > 0) {
+        html += '<div class="section"><h3>Entities Detected</h3>';
+        d.entities.forEach(function(e) {
+          html += '<span class="entity">' + escHtml(e.word) + ' — ' + e.entity_group + ' (' + e.score.toFixed(2) + ')</span> ';
+        });
+        html += '</div>';
+      }
+
+      // Entity context
+      if (d.entity_context && d.entity_context.length > 0) {
+        html += '<div class="section"><h3>Entity Context</h3>';
+        d.entity_context.forEach(function(ctx) {
+          html += '<p class="context-note">• ' + escHtml(ctx) + '</p>';
+        });
+        html += '</div>';
+      }
+
+      // Flagged phrases
+      if (d.flagged_phrases && d.flagged_phrases.length > 0) {
+        html += '<div class="section"><h3>Flagged Phrases</h3>';
+        d.flagged_phrases.forEach(function(p) {
+          html += '<span class="phrase">' + escHtml(p.phrase) + ' (' + p.contribution.toFixed(2) + ')</span> ';
+        });
+        html += '</div>';
+      }
+
+      // Explanation
+      html += '<div class="section"><h3>Explanation</h3>';
+      html += '<p>' + escHtml(d.explanation) + '</p>';
+      if (d.simplified_explanation && d.simplified_explanation !== d.explanation) {
+        html += '<p><strong>Plain language:</strong> ' + escHtml(d.simplified_explanation) + '</p>';
+      }
+      html += '</div>';
+
+      // Recommendation
+      if (d.recommendation) {
+        var recClass = d.risk_level === 'high' ? 'danger' : (d.risk_level === 'medium' ? 'warn' : '');
+        html += '<div class="recommendation ' + recClass + '"><strong>Recommendation:</strong> ' + escHtml(d.recommendation) + '</div>';
+      }
+
+      // Feedback form (show when confidence is low)
+      if (d.risk_confidence < 0.7) {
+        html += feedbackForm();
+      }
+
+      html += '</div>';
+      return html;
+    }
+
     function feedbackForm() {
-      return `
-        <div class="feedback">
-          <h3>Was this correct?</h3>
-          <label>Correct label:
-            <select id="fb-label">
-              <option value="correct">Correct</option>
-              <option value="low_risk">Should be low risk</option>
-              <option value="medium_risk">Should be medium risk</option>
-              <option value="high_risk">Should be high risk</option>
-              <option value="spam">Spam / scam</option>
-              <option value="not_spam">Not spam / scam</option>
-            </select>
-          </label>
-          <textarea id="fb-comment" placeholder="Optional comment (e.g., context, dialect, false flag...)"></textarea>
-          <button onclick="submitFeedback()">Submit feedback</button>
-          <p id="fb-status"></p>
-        </div>
-      `;
+      return '<div class="feedback">' +
+        '<h3>Was this correct?</h3>' +
+        '<label>Correct label: ' +
+          '<select id="fb-label">' +
+            '<option value="correct">Correct</option>' +
+            '<option value="low_risk">Should be low risk</option>' +
+            '<option value="medium_risk">Should be medium risk</option>' +
+            '<option value="high_risk">Should be high risk</option>' +
+            '<option value="spam">Spam / scam</option>' +
+            '<option value="not_spam">Not spam / scam</option>' +
+          '</select>' +
+        '</label>' +
+        '<textarea id="fb-comment" placeholder="Optional comment (e.g., context, dialect, false flag...)"></textarea>' +
+        '<button onclick="submitFeedback()">Submit feedback</button>' +
+        '<p id="fb-status"></p>' +
+      '</div>';
     }
 
     async function submitFeedback() {
@@ -113,12 +173,12 @@
       try {
         const res = await fetch('/feedback', {
           method: 'POST',
-          headers: {'Content-Type':'application/json'},
+          headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({
             text: lastResult.text,
-            normalized: lastResult.norm.normalized,
-            score: lastResult.risk.score,
-            confidence: lastResult.risk.confidence,
+            normalized: lastResult.data.normalized,
+            score: lastResult.data.risk_score,
+            confidence: lastResult.data.risk_confidence,
             correct_label: document.getElementById('fb-label').value,
             comment: document.getElementById('fb-comment').value
           })
@@ -131,6 +191,12 @@
         status.textContent = 'Error: ' + err.message;
         btn.disabled = false;
       }
+    }
+
+    function escHtml(s) {
+      var div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
     }
   </script>
 </body>

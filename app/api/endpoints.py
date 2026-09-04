@@ -6,14 +6,11 @@ from fastapi import APIRouter, File, UploadFile
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional
 
-from app.models.risk_model import RiskModel
+from app.models.model_manager import get_model_manager
 from app.utils.normalization import normalize_with_segments
 from app.utils.transcription import transcribe_audio
 
 router = APIRouter()
-
-# Load risk model once at startup. Falls back to heuristic if no adapter exists.
-risk_model = RiskModel()
 
 _FEEDBACK_PATH = Path("data/feedback.csv")
 _FEEDBACK_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -106,17 +103,30 @@ class FeedbackResponse(BaseModel):
     status: str
 
 
+class AnalyzeRequest(BaseModel):
+    text: str = Field(..., min_length=1)
+
+
+class AnalyzeResponse(BaseModel):
+    normalized: str
+    norm_confidence: float
+    risk_score: float
+    risk_confidence: float
+    risk_level: str
+    flagged_phrases: List[FlaggedPhrase]
+    explanation: str
+    simplified_explanation: str
+    entities: List[NEREntity]
+    entity_context: List[str]
+    recommendation: str
+
+
 @router.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
-    from app.models.ner_model import get_ner_model
-
+    manager = get_model_manager()
     return HealthResponse(
         status="ok",
-        models_loaded={
-            "normalizer": True,
-            "risk_scorer": risk_model.is_loaded,
-            "ner": get_ner_model().is_loaded,
-        },
+        models_loaded=manager.status(),
     )
 
 
@@ -132,8 +142,9 @@ def normalize(payload: NormalizeRequest) -> NormalizeResponse:
 
 @router.post("/risk-score", response_model=RiskScoreResponse)
 def risk_score(payload: RiskScoreRequest) -> RiskScoreResponse:
-    score, confidence, risk_level, flagged_phrases, explanation = risk_model.score(
-        payload.text
+    manager = get_model_manager()
+    score, confidence, risk_level, flagged_phrases, explanation = (
+        manager.risk_model.score(payload.text)
     )
     return RiskScoreResponse(
         score=score,
@@ -152,9 +163,8 @@ def transcribe(audio: UploadFile = File(...)) -> TranscribeResponse:
 
 @router.post("/ner", response_model=NERResponse)
 def ner(payload: NERRequest) -> NERResponse:
-    from app.models.ner_model import get_ner_model
-
-    entities = get_ner_model().extract_entities(payload.text)
+    manager = get_model_manager()
+    entities = manager.ner_model.extract_entities(payload.text)
     return NERResponse(entities=[NEREntity(**e) for e in entities])
 
 
@@ -171,26 +181,10 @@ def simplify_text(payload: SimplifyRequest) -> SimplifyResponse:
     )
 
 
-class AnalyzeRequest(BaseModel):
-    text: str = Field(..., min_length=1)
-
-
-class AnalyzeResponse(BaseModel):
-    normalized: str
-    norm_confidence: float
-    risk_score: float
-    risk_confidence: float
-    risk_level: str
-    flagged_phrases: List[FlaggedPhrase]
-    explanation: str
-    entities: List[NEREntity]
-
-
 @router.post("/analyze", response_model=AnalyzeResponse)
 def analyze_all(payload: AnalyzeRequest) -> AnalyzeResponse:
-    from app.models.model_manager import get_model_manager
-
-    result = get_model_manager().analyze_text(payload.text)
+    manager = get_model_manager()
+    result = manager.analyze_text(payload.text)
     return AnalyzeResponse(
         normalized=result["normalized"],
         norm_confidence=result["norm_confidence"],
@@ -199,7 +193,10 @@ def analyze_all(payload: AnalyzeRequest) -> AnalyzeResponse:
         risk_level=result["risk_level"],
         flagged_phrases=[FlaggedPhrase(**p) for p in result["flagged_phrases"]],
         explanation=result["explanation"],
+        simplified_explanation=result.get("simplified_explanation", ""),
         entities=[NEREntity(**e) for e in result["entities"]],
+        entity_context=result.get("entity_context", []),
+        recommendation=result.get("recommendation", ""),
     )
 
 
