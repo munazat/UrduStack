@@ -145,9 +145,15 @@ def load_data(path: str, max_train: int, val: int, test: int):
 
     total_needed = max_train + val + test
     if len(df) < total_needed:
+        if len(df) < val + test + 1:
+            raise ValueError(
+                f"Dataset has only {len(df)} rows — not enough for "
+                f"val={val} + test={test}. Reduce --val_samples and --test_samples."
+            )
+        max_train = len(df) - val - test
         print(
-            f"Warning: dataset has {len(df)} rows, less than requested {total_needed}. "
-            "Using all available data."
+            f"Warning: dataset has {len(df)} rows. Auto-adjusted train size to "
+            f"{max_train} to leave room for val={val} and test={test}."
         )
 
     train = df.iloc[:max_train]
