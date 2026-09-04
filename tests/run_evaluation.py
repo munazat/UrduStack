@@ -27,18 +27,10 @@ REPO_ROOT = TESTS_DIR.parent
 
 THRESHOLD = 0.4
 ADVERSARIAL_DESCRIPTIONS = {
-    "software engineer required karachi": "clean_ad",
-    "job available 50000 per week send processing fee": "baseline_scam",
-    "j0b availabl3, 50000 p3r w33k, s3nd pr0c3ssing f33": "leetspeak_fee",
-    "j o b a v a i l a b l e, s e n d p r o c e s s i n g f e e": "spacing_evasion",
-    "job availble, 50000 per wek, send procesing fee": "misspelling",
-    "job available, 50000 per week, processing fee bhejo": "mixed_script",
-    "job hai bhai 50000 per week fee bhejo": "roman_urdu_scam",
-    "kutta kamina": "baseline_toxic",
-    "kutt4 k4m1n4": "leetspeak_toxic",
-    "k u t t a   k a m i n a": "spacing_toxic",
-    "yar tum bohat achay ho lekin kutta": "mixed_clean_toxic",
-    "yar aaj weather bohat achha hai": "code_switch_clean",
+    "clean_ad", "baseline_scam", "leetspeak_fee", "spacing_evasion",
+    "misspelling_adv", "mixed_script", "roman_urdu_scam",
+    "baseline_toxic", "leetspeak_toxic", "spacing_toxic",
+    "mixed_clean_toxic", "code_switch_clean",
 }
 
 
@@ -52,7 +44,7 @@ def load_dataset(mode="full"):
         rows = list(csv.DictReader(f))
 
     if mode == "adversarial":
-        filtered = [r for r in rows if r["text"] in ADVERSARIAL_DESCRIPTIONS]
+        filtered = [r for r in rows if r.get("description") in ADVERSARIAL_DESCRIPTIONS]
         print(
             f"Loaded {len(filtered)}/{len(rows)} adversarial cases "
             f"from {path}"
@@ -187,7 +179,14 @@ def main():
     print(f"    Recall:                {macro_r:.4f}")
     print(f"    F1:                    {macro_f1:.4f}")
 
-    print("\n" + classification_report(y_true, y_pred, target_names=["clean", "toxic/scam"]))
+    try:
+        print("\n" + classification_report(
+            y_true, y_pred, labels=[0, 1],
+            target_names=["clean", "toxic/scam"],
+            zero_division=0,
+        ))
+    except ValueError as e:
+        print(f"\n(classification_report skipped: {e})")
 
     print("Per-category breakdown:")
     categories = sorted(set(r["category"] for r in results))

@@ -30,7 +30,7 @@ aaj to bohat maza aayega,0,benign,excited_about_today
 chalo jaldi milo mujhe tumse baat karni hai,0,benign,eager_to_meet
 bhai tension mat lo sab theek hai,0,benign,dont_worry
 yar main bohat khush hoon aaj,0,benign,feeling_happy
-kutta kamina,1,toxic,basic_insult
+kutta kamina,1,toxic,baseline_toxic
 tu pagal hai,1,toxic,calling_crazy
 bakwass band karo,1,toxic,stop_talking_nonsense
 harami insaan,1,toxic,calling_bastard
@@ -48,8 +48,8 @@ madarchod,1,toxic,severe_abuse_2
 gandi zubaan band kar,1,toxic,dirty_mouth
 tujhe sabak sikhaoonga,1,toxic,will_teach_lesson
 tu kisi qabil nahi hai,1,toxic,worthless
-j0b availabl3 50000 p3r w33k s3nd pr0c3ssing f33,1,scam,leetspeak_fee
-j o b a v a i l a b l e s e n d f e e,1,scam,spacing_evasion
+j0b availabl3 50000 p3r w33k s3nd pr0c3ssing f33,1,scam,leetspeak_scam
+j o b a v a i l a b l e s e n d f e e,1,scam,spacing_scam
 job availble 50000 per wek send procesing fee,1,scam,misspelling
 job available 50000 per week send processing fee,1,scam,baseline_scam
 work from home 50000 weekly no experience needed send fee,1,scam,work_from_home_scam
@@ -96,3 +96,13 @@ yaar kya scene hai aaj kal,0,edge,casual_slang
 chalo koi masla nahi,0,edge,no_problem
 tumhara number mil sakta hai,0,edge,asking_for_number
 bhai suno ek kaam tha,0,edge,small_request
+software engineer required karachi,0,scam,clean_ad
+"j0b availabl3, 50000 p3r w33k, s3nd pr0c3ssing f33",1,scam,leetspeak_fee
+"j o b  a v a i l a b l e,  s e n d  p r o c e s s i n g  f e e",1,scam,spacing_evasion
+"job availble, 50000 per wek, send procesing fee",1,scam,misspelling_adv
+"job available, 50000 per week, processing fee bhejo",1,scam,mixed_script
+job hai bhai 50000 per week fee bhejo,1,scam,roman_urdu_scam
+kutt4 k4m1n4,1,toxic,leetspeak_toxic
+"k u t t a   k a m i n a",1,toxic,spacing_toxic
+yar tum bohat achay ho lekin kutta,1,toxic,mixed_clean_toxic
+yar aaj weather bohat achha hai,0,benign,code_switch_clean
