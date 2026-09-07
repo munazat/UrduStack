@@ -90,7 +90,7 @@ class ModelManager:
         from app.utils.simplify import simplify
 
         normalized, norm_conf, segments = normalize_with_segments(text)
-        score, rconf, risk_level, flagged, explanation = self.risk_model.score(text)
+        score, rconf, risk_level, flagged, explanation, debug_scores = self.risk_model.score(text)
         entities = self.ner_model.extract_entities(normalized)
 
         entity_types = {e["entity_group"] for e in entities}
@@ -148,6 +148,7 @@ class ModelManager:
             "entities": entities,
             "entity_context": entity_context,
             "recommendation": recommendation,
+            "debug_scores": debug_scores,
         }
 
     @staticmethod
@@ -157,6 +158,20 @@ class ModelManager:
         entities: list,
         entity_context: list,
     ) -> str:
+        """Build the user-facing safety recommendation.
+
+        Deliberately does NOT gate the "verify the organization independently"
+        caution on whether NER found an ORGANIZATION entity. NER has been
+        observed to hallucinate organization entities from ordinary words in
+        this pipeline's normalized/transliterated output (e.g. the Urdu word
+        for "job" itself, tagged ORGANIZATION at 96% confidence) -- trusting
+        that as proof of a "verified" organization would silently drop the
+        caution on exactly the messages that most need it. NER's absence of a
+        hit isn't trustworthy either (known recall gap), so its org signal is
+        not reliable enough, in either direction, to gate a safety message.
+        Entities are still surfaced to the user elsewhere for information;
+        they just don't get a vote here.
+        """
         from app.utils.risk import categorize_risk
 
         if risk_level == "low":
@@ -164,10 +179,12 @@ class ModelManager:
 
         cat_result = categorize_risk(flagged)
         advice = cat_result.get("advice", "")
+        categories = cat_result.get("categories", [])
+        org_relevant = any(c in ("job_scam", "phishing") for c in categories)
 
         if advice:
-            if not any("organization" in ctx.lower() for ctx in entity_context):
-                advice += " No verifiable organization is behind this message."
+            if org_relevant:
+                advice += " Verify any claimed organization independently — do not rely on this message alone."
             return advice
 
         if risk_level == "high":
@@ -175,8 +192,6 @@ class ModelManager:
                 "Strong indicators of scam or toxic content detected.",
                 "Do not share money, personal details, or click any links.",
             ]
-            if not any("organization" in ctx.lower() for ctx in entity_context):
-                parts.append("No verifiable organization is behind this message.")
             return " ".join(parts)
 
         parts = ["Some suspicious patterns detected."]

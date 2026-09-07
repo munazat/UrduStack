@@ -191,6 +191,18 @@ def _build_report(result: dict) -> str:
     )
     lines.append("")
 
+    debug = result.get("debug_scores")
+    if debug:
+        lora_s = debug.get("lora_score")
+        heur_s = debug.get("heuristic_score")
+        method = debug.get("ensemble_method", "")
+        lora_str = f"{lora_s:.2f}" if lora_s is not None else "not loaded"
+        lines.append(
+            f"**Ensemble:** {method}  |  "
+            f"LoRA: {lora_str}  |  Heuristic: {heur_s:.2f}"
+        )
+        lines.append("")
+
     if result.get("entities"):
         lines.append("### Entities Detected")
         icon_map = {

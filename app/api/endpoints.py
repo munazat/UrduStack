@@ -54,6 +54,7 @@ class RiskScoreResponse(BaseModel):
     threat_categories: List[str] = []
     primary_category: Optional[str] = None
     explanation: str
+    debug_scores: Optional[dict] = None
 
 
 class TranscribeResponse(BaseModel):
@@ -123,6 +124,7 @@ class AnalyzeResponse(BaseModel):
     entities: List[NEREntity]
     entity_context: List[str]
     recommendation: str
+    debug_scores: Optional[dict] = None
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -149,7 +151,7 @@ def risk_score(payload: RiskScoreRequest) -> RiskScoreResponse:
     from app.utils.risk import categorize_risk
 
     manager = get_model_manager()
-    score, confidence, risk_level, flagged_phrases, explanation = (
+    score, confidence, risk_level, flagged_phrases, explanation, debug = (
         manager.risk_model.score(payload.text)
     )
     cat_result = categorize_risk(flagged_phrases)
@@ -161,6 +163,7 @@ def risk_score(payload: RiskScoreRequest) -> RiskScoreResponse:
         threat_categories=cat_result["categories"],
         primary_category=cat_result["primary_category"],
         explanation=explanation,
+        debug_scores=debug,
     )
 
 
@@ -208,6 +211,7 @@ def analyze_all(payload: AnalyzeRequest) -> AnalyzeResponse:
         entities=[NEREntity(**e) for e in result["entities"]],
         entity_context=result.get("entity_context", []),
         recommendation=result.get("recommendation", ""),
+        debug_scores=result.get("debug_scores"),
     )
 
 

@@ -88,12 +88,21 @@ class RiskModel:
             max_length=max_length,
         )
 
-    def score(self, text: str) -> Tuple[float, float, str, List[Dict[str, float]], str]:
-        """Max-ensemble: takes the higher of LoRA model and heuristic scores."""
+    def score(self, text: str) -> Tuple[float, float, str, List[Dict[str, float]], str, Dict]:
+        """Max-ensemble: takes the higher of LoRA model and heuristic scores.
+
+        Returns (score, confidence, risk_level, flagged, explanation, debug).
+        The debug dict contains lora_score, heuristic_score, and ensemble_method.
+        """
         h_score, h_conf, h_level, h_flagged, h_expl = heuristic_score(text)
 
         if not self.is_loaded:
-            return h_score, h_conf, h_level, h_flagged, h_expl
+            debug = {
+                "lora_score": None,
+                "heuristic_score": h_score,
+                "ensemble_method": "heuristic_only",
+            }
+            return h_score, h_conf, h_level, h_flagged, h_expl, debug
 
         import torch
 
@@ -109,6 +118,7 @@ class RiskModel:
         lora_flagged = self._contribution_scores(text)
 
         score = max(lora_score, h_score)
+        ensemble_method = "lora" if lora_score >= h_score else "heuristic"
         confidence = round(max(risk_prob, 1 - risk_prob), 2)
         risk_level = "high" if score >= 0.7 else "medium" if score >= 0.4 else "low"
 
@@ -120,7 +130,12 @@ class RiskModel:
                 merged_flagged.append(item)
 
         explanation = f"{risk_level.capitalize()} risk: model confidence {confidence:.2f}."
-        return score, confidence, risk_level, merged_flagged, explanation
+        debug = {
+            "lora_score": lora_score,
+            "heuristic_score": h_score,
+            "ensemble_method": f"max_ensemble ({ensemble_method})",
+        }
+        return score, confidence, risk_level, merged_flagged, explanation, debug
 
     def _contribution_scores(self, text: str) -> List[Dict[str, float]]:
         """Ablation-based contribution of each word to the risk score."""

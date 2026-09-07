@@ -24,7 +24,17 @@ import os
 from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
 
-from app.utils.risk import compute_risk_score, categorize_risk
+from app.models.risk_model import RiskModel
+from app.utils.risk import categorize_risk
+
+_risk_model = None
+
+
+def _get_model() -> RiskModel:
+    global _risk_model
+    if _risk_model is None:
+        _risk_model = RiskModel()
+    return _risk_model
 
 app = Flask(__name__)
 
@@ -36,15 +46,13 @@ if _AUTH_TOKEN:
 
 
 def _format_verdict(text: str) -> str:
-    """Run UrduStack pipeline and format a WhatsApp-friendly verdict."""
-    score, confidence, risk_level, flagged, explanation = compute_risk_score(text)
+    """Run UrduStack ensemble pipeline and format a WhatsApp-friendly verdict."""
+    model = _get_model()
+    score, confidence, risk_level, flagged, explanation, debug = model.score(text)
     cat_result = categorize_risk(flagged)
 
-    cat_labels = {
-        "job_scam": "Fake Job Posting",
-        "phishing": "Phishing",
-        "harassment": "Harassment/Abuse",
-    }
+    ensemble = debug.get("ensemble_method", "heuristic_only")
+    method_tag = f" [{ensemble}]"
 
     if score >= 0.7:
         header = "SCAM DETECTED"
@@ -53,9 +61,14 @@ def _format_verdict(text: str) -> str:
     else:
         header = "LOOKS SAFE"
 
-    lines = [f"*{header}* (score: {score:.2f})"]
+    lines = [f"*{header}* (score: {score:.2f}){method_tag}"]
 
     if cat_result["categories"]:
+        cat_labels = {
+            "job_scam": "Fake Job Posting",
+            "phishing": "Phishing",
+            "harassment": "Harassment/Abuse",
+        }
         types = ", ".join(cat_labels.get(c, c) for c in cat_result["categories"])
         lines.append(f"Type: {types}")
 
@@ -102,7 +115,9 @@ def whatsapp_webhook():
 
 @app.route("/health")
 def health():
-    return {"status": "ok", "bot": "whatsapp"}
+    model = _get_model()
+    mode = "ensemble" if model.is_loaded else "heuristic_only"
+    return {"status": "ok", "bot": "whatsapp", "mode": mode}
 
 
 if __name__ == "__main__":

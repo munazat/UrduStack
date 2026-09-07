@@ -39,6 +39,54 @@ def _fuzzy_phrase(pattern_words: list) -> re.Pattern:
     return re.compile("".join(parts), re.IGNORECASE)
 
 
+def _levenshtein(s: str, t: str) -> int:
+    """Edit distance between two strings. Used by the fuzzy single-word pass
+    to catch novel misspellings that aren't in the static _TYPO_MAP."""
+    if len(s) < len(t):
+        return _levenshtein(t, s)
+    if not t:
+        return len(s)
+    prev = list(range(len(t) + 1))
+    for i, sc in enumerate(s):
+        curr = [i + 1]
+        for j, tc in enumerate(t):
+            cost = 0 if sc == tc else 1
+            curr.append(min(curr[j] + 1, prev[j + 1] + 1, prev[j] + cost))
+        prev = curr
+    return prev[-1]
+
+
+_WORD_TOKEN_RE = re.compile(r"[A-Za-z0-9]+")
+
+
+def _fuzzy_match_words(text: str, word_weights: Dict[str, float]) -> List[Tuple[str, float]]:
+    """Find word-boundary tokens within edit distance 1 (≤5 chars) or 2 (>5)
+    of a known keyword. Rejects tokens shorter than 0.7× the keyword length
+    to avoid false positives on very short words. Also skips tokens that are
+    themselves keywords (so related keywords like "kutta"/"kutte" aren't
+    double-counted as fuzzy variants of each other).
+    """
+    matches: List[Tuple[str, float]] = []
+    seen: set = set()
+    for token in _WORD_TOKEN_RE.findall(text):
+        t = token.lower()
+        # If the token itself is a keyword, skip — Pass 6 will count it exactly.
+        if t in word_weights:
+            continue
+        for word, weight in word_weights.items():
+            if word in seen:
+                continue
+            if len(t) < len(word) * 0.7:
+                continue
+            max_dist = 1 if len(word) <= 5 else 2
+            if abs(len(t) - len(word)) > max_dist:
+                continue
+            if _levenshtein(t, word) <= max_dist:
+                seen.add(word)
+                matches.append((word, weight))
+    return matches
+
+
 # Multi-word phrases: (display_name, weight, words_list)
 _PHRASE_DEFS: List[Tuple[str, float, List[str]]] = [
     ("processing fee", 0.34, ["processing", "fee"]),
@@ -64,7 +112,11 @@ for _name, _weight, _words in _PHRASE_DEFS:
     _PHRASE_FUZZY.append((_name, _weight, _fuzzy_phrase(_words)))
 
 # Single-word patterns use simple substring matching.
+# Expanded from the PURUTT Roman-Urdu-Toxic-Corpus top-frequency toxic tokens
+# and common job-scam vocabulary. Low weights so a single match in clean
+# context stays low-risk; multi-signal text still surfaces.
 _WORD_PATTERNS: Dict[str, float] = {
+    # Toxic / harassing (Roman Urdu)
     "ganja": 0.25,
     "kutta": 0.25,
     "kamina": 0.25,
@@ -76,6 +128,18 @@ _WORD_PATTERNS: Dict[str, float] = {
     "benchod": 0.45,
     "bewakoof": 0.15,
     "kameena": 0.25,
+    "kutti": 0.20,
+    "kutte": 0.25,
+    "chup": 0.15,
+    "ullu": 0.15,
+    "nalayak": 0.20,
+    "kamzor": 0.15,
+    "gaddar": 0.25,
+    "zaalim": 0.20,
+    # Job-scam single words (low weight — need additional signals to flag)
+    "deposit": 0.12,
+    "transfer": 0.12,
+    "guaranteed": 0.12,
 }
 
 # Common misspellings → correct form (flat typo dictionary).
@@ -134,6 +198,17 @@ _PHRASE_CATEGORY: Dict[str, str] = {
     "madarchod": "harassment",
     "benchod": "harassment",
     "bewakoof": "harassment",
+    "kutti": "harassment",
+    "kutte": "harassment",
+    "chup": "harassment",
+    "ullu": "harassment",
+    "nalayak": "harassment",
+    "kamzor": "harassment",
+    "gaddar": "harassment",
+    "zaalim": "harassment",
+    "deposit": "job_scam",
+    "transfer": "job_scam",
+    "guaranteed": "job_scam",
 }
 
 _CATEGORY_ADVICE: Dict[str, str] = {
@@ -205,13 +280,14 @@ def _explanation(score: float, phrases: List[str]) -> str:
 
 
 def compute_risk_score(text: str) -> Tuple[float, float, str, List[Dict[str, float]], str]:
-    """Heuristic risk scorer with leetspeak, spacing, typo, and ensemble support.
+    """Heuristic risk scorer with leetspeak, spacing, typo, fuzzy, and ensemble support.
 
-    Four-pass detection:
+    Five-pass detection:
     1. Normal word-boundary matching on collapsed text
     2. Leetspeak normalization + re-check
     3. Typo correction + re-check (catches common misspellings)
     4. Fuzzy character-spacing matching on original text (for spacing evasion)
+    5. Fuzzy edit-distance matching on single words (catches novel misspellings)
 
     Returns score, confidence, risk_level, flagged phrases with contributions,
     and a human-readable explanation.
@@ -245,9 +321,20 @@ def compute_risk_score(text: str) -> Tuple[float, float, str, List[Dict[str, flo
                 flagged.append({"phrase": name, "contribution": c})
                 total_contribution += c
 
+    # Pass 5: fuzzy edit-distance matching for single-word patterns (novel typos)
+    # _fuzzy_match_words skips tokens that are themselves keywords (so related
+    # keywords like "kutta"/"kutte"/"kutti" each count only once via Pass 6).
+    for matched_text in (lower_text, leet_text):
+        for word, contribution in _fuzzy_match_words(matched_text, _WORD_PATTERNS):
+            if word not in seen:
+                seen.add(word)
+                c = round(contribution * 1.65, 3) if contribution >= 0.25 else contribution
+                flagged.append({"phrase": word, "contribution": c})
+                total_contribution += c
+
     # Single-word patterns (substring match on all variants)
     for word, contribution in _WORD_PATTERNS.items():
-        if word in lower_text or word in leet_text or word in typo_text:
+        if word not in seen and (word in lower_text or word in leet_text or word in typo_text):
             c = round(contribution * 1.65, 3) if contribution >= 0.25 else contribution
             flagged.append({"phrase": word, "contribution": c})
             total_contribution += c
