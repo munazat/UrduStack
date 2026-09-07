@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 from app.utils.risk import compute_risk_score as heuristic_score
-from app.utils.normalization import collapse_spaced_text
 
 # Optional heavy imports are deferred so the API can start without torch/transformers
 # installed if only the heuristic path is used.
@@ -90,9 +89,11 @@ class RiskModel:
         )
 
     def score(self, text: str) -> Tuple[float, float, str, List[Dict[str, float]], str]:
-        text = collapse_spaced_text(text)
+        """Max-ensemble: takes the higher of LoRA model and heuristic scores."""
+        h_score, h_conf, h_level, h_flagged, h_expl = heuristic_score(text)
+
         if not self.is_loaded:
-            return heuristic_score(text)
+            return h_score, h_conf, h_level, h_flagged, h_expl
 
         import torch
 
@@ -103,16 +104,23 @@ class RiskModel:
             scaled = logits / self.temperature
             probs = torch.softmax(scaled, dim=-1)
             risk_prob = probs[0, 1].item()
-            confidence = max(risk_prob, 1 - risk_prob)
 
-        score = round(risk_prob, 2)
-        confidence = round(confidence, 2)
+        lora_score = round(risk_prob, 2)
+        lora_flagged = self._contribution_scores(text)
+
+        score = max(lora_score, h_score)
+        confidence = round(max(risk_prob, 1 - risk_prob), 2)
         risk_level = "high" if score >= 0.7 else "medium" if score >= 0.4 else "low"
-        flagged = self._contribution_scores(text)
-        explanation = (
-            f"{risk_level.capitalize()} risk: model confidence {confidence:.2f}."
-        )
-        return score, confidence, risk_level, flagged, explanation
+
+        seen = set()
+        merged_flagged = []
+        for item in h_flagged + lora_flagged:
+            if item["phrase"] not in seen:
+                seen.add(item["phrase"])
+                merged_flagged.append(item)
+
+        explanation = f"{risk_level.capitalize()} risk: model confidence {confidence:.2f}."
+        return score, confidence, risk_level, merged_flagged, explanation
 
     def _contribution_scores(self, text: str) -> List[Dict[str, float]]:
         """Ablation-based contribution of each word to the risk score."""

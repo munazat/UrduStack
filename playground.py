@@ -81,14 +81,18 @@ def submit_feedback(
 def _naive_keyword_score(text: str) -> dict:
     """Baseline: exact English keyword matching only.
     No normalization, no model, no code-switching awareness."""
-    from app.utils.risk import HIGH_RISK_PATTERNS
+    from app.utils.risk import _PHRASE_DEFS, _WORD_PATTERNS
 
     lower = text.lower()
     matched = []
     total = 0.0
-    for phrase, weight in HIGH_RISK_PATTERNS.items():
-        if phrase in lower:
-            matched.append(phrase)
+    for name, weight, _ in _PHRASE_DEFS:
+        if name in lower:
+            matched.append(name)
+            total += weight
+    for word, weight in _WORD_PATTERNS.items():
+        if word in lower:
+            matched.append(word)
             total += weight
 
     score = min(round(total, 2), 0.99)

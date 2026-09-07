@@ -232,27 +232,31 @@ class TestRiskLevelFunction:
 
 class TestHeuristicPatterns:
 
-    def test_16_patterns_defined(self):
-        from app.utils.risk import HIGH_RISK_PATTERNS
+    def test_17_patterns_defined(self):
+        from app.utils.risk import _PHRASE_DEFS, _WORD_PATTERNS
 
-        assert len(HIGH_RISK_PATTERNS) == 16
+        total = len(_PHRASE_DEFS) + len(_WORD_PATTERNS)
+        assert total == 17
 
     def test_all_contributions_positive(self):
-        from app.utils.risk import HIGH_RISK_PATTERNS
+        from app.utils.risk import _PHRASE_DEFS, _WORD_PATTERNS
 
-        for phrase, weight in HIGH_RISK_PATTERNS.items():
-            assert weight > 0, f"Pattern '{phrase}' has non-positive weight"
+        for name, weight, _ in _PHRASE_DEFS:
+            assert weight > 0, f"Pattern '{name}' has non-positive weight"
+        for word, weight in _WORD_PATTERNS.items():
+            assert weight > 0, f"Pattern '{word}' has non-positive weight"
 
     def test_toxic_patterns_present(self):
-        from app.utils.risk import HIGH_RISK_PATTERNS
+        from app.utils.risk import _WORD_PATTERNS
 
         toxic_words = ["kutta", "madarchod", "benchod", "bhosri", "chutiya"]
         for word in toxic_words:
-            assert word in HIGH_RISK_PATTERNS
+            assert word in _WORD_PATTERNS
 
     def test_scam_patterns_present(self):
-        from app.utils.risk import HIGH_RISK_PATTERNS
+        from app.utils.risk import _PHRASE_DEFS
 
+        phrase_names = [name for name, _, _ in _PHRASE_DEFS]
         scam_phrases = ["processing fee", "send money", "click here"]
         for phrase in scam_phrases:
-            assert phrase in HIGH_RISK_PATTERNS
+            assert phrase in phrase_names
