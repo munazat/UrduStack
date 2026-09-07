@@ -299,3 +299,66 @@ class TestTypoCorrection:
 
         for typo, correct in _TYPO_MAP.items():
             assert typo != correct, f"'{typo}' maps to itself"
+
+
+class TestRiskCategorization:
+
+    def test_job_scam_detected(self):
+        from app.utils.risk import categorize_risk
+
+        flagged = [
+            {"phrase": "processing fee", "contribution": 0.56},
+            {"phrase": "50000 per week", "contribution": 0.28},
+        ]
+        result = categorize_risk(flagged)
+        assert "job_scam" in result["categories"]
+        assert result["primary_category"] == "job_scam"
+        assert "fake job" in result["advice"].lower()
+
+    def test_harassment_detected(self):
+        from app.utils.risk import categorize_risk
+
+        flagged = [
+            {"phrase": "kutta", "contribution": 0.41},
+            {"phrase": "kamina", "contribution": 0.41},
+        ]
+        result = categorize_risk(flagged)
+        assert "harassment" in result["categories"]
+        assert result["primary_category"] == "harassment"
+        assert "block" in result["advice"].lower()
+
+    def test_mixed_categories_ranked(self):
+        from app.utils.risk import categorize_risk
+
+        flagged = [
+            {"phrase": "processing fee", "contribution": 0.56},
+            {"phrase": "kutta", "contribution": 0.41},
+        ]
+        result = categorize_risk(flagged)
+        assert len(result["categories"]) == 2
+        assert result["primary_category"] == "job_scam"
+        assert "harassment" in result["categories"]
+
+    def test_empty_flagged_returns_empty(self):
+        from app.utils.risk import categorize_risk
+
+        result = categorize_risk([])
+        assert result["categories"] == []
+        assert result["primary_category"] is None
+        assert result["advice"] == ""
+
+    def test_all_patterns_have_category(self):
+        from app.utils.risk import _PHRASE_DEFS, _WORD_PATTERNS, _PHRASE_CATEGORY
+
+        for name, _, _ in _PHRASE_DEFS:
+            assert name in _PHRASE_CATEGORY, f"Phrase '{name}' missing from _PHRASE_CATEGORY"
+        for word in _WORD_PATTERNS:
+            assert word in _PHRASE_CATEGORY, f"Word '{word}' missing from _PHRASE_CATEGORY"
+
+    def test_category_advice_is_specific(self):
+        from app.utils.risk import _CATEGORY_ADVICE
+
+        for cat, advice in _CATEGORY_ADVICE.items():
+            assert len(advice) > 50, f"Category '{cat}' advice too generic"
+            assert cat != "job_scam" or "fee" in advice.lower()
+            assert cat != "harassment" or "block" in advice.lower()

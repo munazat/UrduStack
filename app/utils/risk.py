@@ -109,6 +109,85 @@ def _correct_typos(text: str) -> str:
     return " ".join(_TYPO_MAP.get(w, w) for w in text.split())
 
 
+# Maps pattern names to threat categories for actionable recommendations.
+_PHRASE_CATEGORY: Dict[str, str] = {
+    "processing fee": "job_scam",
+    "registration fee": "job_scam",
+    "advance payment": "job_scam",
+    "send money": "job_scam",
+    "send fee": "job_scam",
+    "handling charges": "job_scam",
+    "50000 per week": "job_scam",
+    "100000 per month": "job_scam",
+    "urgent hiring": "job_scam",
+    "job available": "job_scam",
+    "limited seats": "job_scam",
+    "click here": "phishing",
+    "ganja": "harassment",
+    "kutta": "harassment",
+    "kamina": "harassment",
+    "kameena": "harassment",
+    "harami": "harassment",
+    "haramzada": "harassment",
+    "bhosri": "harassment",
+    "chutiya": "harassment",
+    "madarchod": "harassment",
+    "benchod": "harassment",
+    "bewakoof": "harassment",
+}
+
+_CATEGORY_ADVICE: Dict[str, str] = {
+    "job_scam": (
+        "Likely a fake job posting. Legitimate employers never ask for "
+        "upfront fees. Do not send money or share CNIC/bank details. "
+        "Report the ad on the platform where you saw it."
+    ),
+    "phishing": (
+        "Possible phishing attempt. Do not click links or download attachments. "
+        "Verify the sender through an official website or known phone number."
+    ),
+    "harassment": (
+        "Abusive or harassing content detected. Consider blocking the sender "
+        "and reporting to the platform. If threats are involved, save screenshots "
+        "and report to FIA Cyber Crime (nr3c.gov.pk)."
+    ),
+}
+
+
+def categorize_risk(flagged: List[Dict[str, float]]) -> Dict[str, object]:
+    """Map flagged phrases to threat categories and return actionable advice.
+
+    Returns a dict with:
+      - categories: list of detected category names
+      - primary_category: the category with the highest total contribution
+      - advice: tailored recommendation string
+    """
+    cat_scores: Dict[str, float] = {}
+    for item in flagged:
+        cat = _PHRASE_CATEGORY.get(item["phrase"])
+        if cat:
+            cat_scores[cat] = cat_scores.get(cat, 0.0) + item["contribution"]
+
+    if not cat_scores:
+        return {
+            "categories": [],
+            "primary_category": None,
+            "advice": "",
+        }
+
+    ranked = sorted(cat_scores, key=cat_scores.get, reverse=True)
+    primary = ranked[0]
+    advice_parts = [_CATEGORY_ADVICE[primary]]
+    for cat in ranked[1:]:
+        advice_parts.append(_CATEGORY_ADVICE[cat])
+
+    return {
+        "categories": ranked,
+        "primary_category": primary,
+        "advice": " ".join(advice_parts),
+    }
+
+
 def _risk_level(score: float) -> str:
     if score >= 0.7:
         return "high"

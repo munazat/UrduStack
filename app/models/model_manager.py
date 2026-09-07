@@ -126,6 +126,9 @@ class ModelManager:
 
         simplified_explanation, _changes = simplify(explanation)
 
+        from app.utils.risk import categorize_risk
+        threat_cats = categorize_risk(flagged)
+
         recommendation = self._generate_recommendation(
             risk_level, flagged, entities, entity_context
         )
@@ -138,6 +141,8 @@ class ModelManager:
             "risk_confidence": rconf,
             "risk_level": risk_level,
             "flagged_phrases": flagged,
+            "threat_categories": threat_cats["categories"],
+            "primary_category": threat_cats["primary_category"],
             "explanation": explanation,
             "simplified_explanation": simplified_explanation,
             "entities": entities,
@@ -152,29 +157,37 @@ class ModelManager:
         entities: list,
         entity_context: list,
     ) -> str:
+        from app.utils.risk import categorize_risk
+
+        if risk_level == "low":
+            return "No significant risk indicators detected. Standard caution applies."
+
+        cat_result = categorize_risk(flagged)
+        advice = cat_result.get("advice", "")
+
+        if advice:
+            if not any("organization" in ctx.lower() for ctx in entity_context):
+                advice += " No verifiable organization is behind this message."
+            return advice
+
         if risk_level == "high":
             parts = [
                 "Strong indicators of scam or toxic content detected.",
                 "Do not share money, personal details, or click any links.",
             ]
-            if not any(
-                "organization" in ctx.lower() for ctx in entity_context
-            ):
-                parts.append(
-                    "No verifiable organization is behind this message."
-                )
+            if not any("organization" in ctx.lower() for ctx in entity_context):
+                parts.append("No verifiable organization is behind this message.")
             return " ".join(parts)
-        if risk_level == "medium":
-            parts = ["Some suspicious patterns detected."]
-            if flagged:
-                top = flagged[0]["phrase"] if flagged else ""
-                parts.append(f"Verify the claim about '{top}' independently.")
-            parts.append(
-                "Contact the organization through their official website "
-                "or phone number before responding."
-            )
-            return " ".join(parts)
-        return "No significant risk indicators detected. Standard caution applies."
+
+        parts = ["Some suspicious patterns detected."]
+        if flagged:
+            top = flagged[0]["phrase"] if flagged else ""
+            parts.append(f"Verify the claim about '{top}' independently.")
+        parts.append(
+            "Contact the organization through their official website "
+            "or phone number before responding."
+        )
+        return " ".join(parts)
 
 
 _manager: Optional[ModelManager] = None

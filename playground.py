@@ -222,6 +222,17 @@ def _build_report(result: dict) -> str:
             )
         lines.append("")
 
+    if result.get("threat_categories"):
+        cat_labels = {
+            "job_scam": "Fake Job Posting",
+            "phishing": "Phishing",
+            "harassment": "Harassment / Abuse",
+        }
+        cats = result["threat_categories"]
+        labels = [cat_labels.get(c, c) for c in cats]
+        lines.append(f"**Threat type:** {', '.join(labels)}")
+        lines.append("")
+
     lines.append("### Explanation")
     lines.append(result["explanation"])
     lines.append("")
