@@ -232,11 +232,11 @@ class TestRiskLevelFunction:
 
 class TestHeuristicPatterns:
 
-    def test_17_patterns_defined(self):
+    def test_23_patterns_defined(self):
         from app.utils.risk import _PHRASE_DEFS, _WORD_PATTERNS
 
         total = len(_PHRASE_DEFS) + len(_WORD_PATTERNS)
-        assert total == 17
+        assert total == 23
 
     def test_all_contributions_positive(self):
         from app.utils.risk import _PHRASE_DEFS, _WORD_PATTERNS

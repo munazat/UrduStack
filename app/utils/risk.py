@@ -51,6 +51,8 @@ _PHRASE_DEFS: List[Tuple[str, float, List[str]]] = [
     ("job available", 0.08, ["job", "available"]),
     ("click here", 0.18, ["click", "here"]),
     ("limited seats", 0.16, ["limited", "seats"]),
+    ("handling charges", 0.30, ["handling", "charges"]),
+    ("send fee", 0.26, ["send", "fee"]),
 ]
 
 # Compiled normal (word-boundary) and fuzzy patterns
@@ -66,10 +68,14 @@ _WORD_PATTERNS: Dict[str, float] = {
     "ganja": 0.25,
     "kutta": 0.25,
     "kamina": 0.25,
+    "harami": 0.30,
+    "haramzada": 0.35,
     "bhosri": 0.35,
     "chutiya": 0.35,
     "madarchod": 0.45,
     "benchod": 0.45,
+    "bewakoof": 0.15,
+    "kameena": 0.25,
 }
 
 # Common misspellings → correct form (flat typo dictionary).

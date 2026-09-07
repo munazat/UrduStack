@@ -116,7 +116,7 @@ Feedback endpoint collects user corrections. Feedback consumer script filters lo
 
 **Calibration:** Temperature scaling T=1.409, grid search over 100 values [0.5, 5.0] on validation set.
 
-**Adversarial test suite:** 12 red-team cases covering leetspeak, spacing evasion, misspelling, mixed-script attacks, and Roman Urdu scam. The four-pass heuristic scorer passes **12/12** cases. The max-ensemble (LoRA + heuristic) also passes **12/12** on Colab GPU. A Colab-runnable script (`tests/run_adversarial_colab.py`) is provided for re-running against the trained adapter.
+**Adversarial test suite:** 12 red-team cases covering leetspeak, spacing evasion, misspelling, mixed-script attacks, and Roman Urdu scam. The four-pass heuristic scorer passes **12/12** cases (verified locally). A prior Colab run of the max-ensemble (LoRA + heuristic) also scored 12/12, but the output CSV (`tests/adversarial_results_model.csv`) was not saved from that session — re-run `tests/run_adversarial_colab.py` on Colab to produce a committed evidence file.
 
 Full metrics: [`tests/eval_metrics_full_t0.4.json`](tests/eval_metrics_full_t0.4.json)
 
@@ -209,8 +209,7 @@ UrduStack/
 │   └── risk_lora/                # Trained LoRA adapter + tokenizer
 ├── data/
 │   └── processed/
-│       ├── rag_phrase_pairs.json # RAG seed: 124 entries extending static dict to 587 total
-│       └── roman_urdu_freq.json  # Frequency map (built on Colab, committed)
+│       └── rag_phrase_pairs.json # RAG seed: 124 entries extending static dict to 587 total
 ├── tests/
 │   ├── adversarial_cases.py      # 12-case red-team test suite (HTTP-based)
 │   ├── run_adversarial_colab.py  # Adversarial re-run against trained model
@@ -239,6 +238,8 @@ UrduStack/
 ## Limitations & Future Work
 
 - **Recall gap (75.6%):** Model favors precision (97.0%) to avoid false positives. Expanding training data with more diverse toxic/scam examples would improve recall.
+- **Frequency map not committed:** The Tier-1 frequency map (`data/processed/roman_urdu_freq.json`) is built from 6.37M parallel sentences on Colab via `scripts/build_normalizer_map.py` but was never downloaded to the repo. The normalizer falls back to the 467-word static dictionary + RAG (587 indexed phrases) + phonetic transliteration. Build script and design are in place; JSON is generated on first Colab run.
+- **Heuristic vocabulary coverage:** The heuristic scorer covers known scam phrases and toxic words, but novel synonyms (e.g., "handling charges" for "processing fee") and common toxic words outside the word list (e.g., "harami") are not caught. The LoRA model may compensate in the max-ensemble, but this has not been independently verified on novel vocabulary.
 - **Simplification dictionary (19 entries):** The `COMPLEX_TO_SIMPLE` map covers 19 high-frequency formal Urdu words. This is functional but limited — expanding to 100+ entries with frequency-weighted selection is a clear next step. The architecture (multi-word matching, Roman Urdu support, complexity scoring) scales to larger dictionaries without code changes.
 - **NER offset mapping:** Assumes 1:1 token alignment between original and normalized text. When the normalizer expands a single Roman Urdu token into multiple Urdu-script tokens, character offsets can desync. Works correctly for Urdu-script input; Roman Urdu entity positions may be approximate.
 - **No batch inference:** Each text is processed individually (fine for demo, slow at scale).
