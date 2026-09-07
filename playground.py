@@ -317,14 +317,14 @@ def _generate_pdf():
 
 def build_demo() -> gr.Blocks:
     with gr.Blocks(
-        title="UrduStack \u2014 Unified Urdu NLP Analysis",
+        title="UrduStack \u2014 Roman-Urdu Job Scam & Toxic Content Detector",
         theme=gr.themes.Soft(),
     ) as demo:
         gr.Markdown(
             "# UrduStack\n"
-            "Unified Urdu NLP infrastructure: normalization, risk scoring, "
-            "entity recognition, and plain-language explanations \u2014 "
-            "all in one pipeline."
+            "**Stop Roman-Urdu job scams before the click.** "
+            "Paste a suspicious job ad, WhatsApp forward, or any text — "
+            "get a risk verdict, threat type, and actionable advice."
         )
 
         with gr.Tabs():

@@ -51,6 +51,8 @@ class RiskScoreResponse(BaseModel):
     confidence: float
     risk_level: str
     flagged_phrases: List[FlaggedPhrase]
+    threat_categories: List[str] = []
+    primary_category: Optional[str] = None
     explanation: str
 
 
@@ -114,6 +116,8 @@ class AnalyzeResponse(BaseModel):
     risk_confidence: float
     risk_level: str
     flagged_phrases: List[FlaggedPhrase]
+    threat_categories: List[str] = []
+    primary_category: Optional[str] = None
     explanation: str
     simplified_explanation: str
     entities: List[NEREntity]
@@ -142,15 +146,20 @@ def normalize(payload: NormalizeRequest) -> NormalizeResponse:
 
 @router.post("/risk-score", response_model=RiskScoreResponse)
 def risk_score(payload: RiskScoreRequest) -> RiskScoreResponse:
+    from app.utils.risk import categorize_risk
+
     manager = get_model_manager()
     score, confidence, risk_level, flagged_phrases, explanation = (
         manager.risk_model.score(payload.text)
     )
+    cat_result = categorize_risk(flagged_phrases)
     return RiskScoreResponse(
         score=score,
         confidence=confidence,
         risk_level=risk_level,
         flagged_phrases=flagged_phrases,
+        threat_categories=cat_result["categories"],
+        primary_category=cat_result["primary_category"],
         explanation=explanation,
     )
 
@@ -192,6 +201,8 @@ def analyze_all(payload: AnalyzeRequest) -> AnalyzeResponse:
         risk_confidence=result["risk_confidence"],
         risk_level=result["risk_level"],
         flagged_phrases=[FlaggedPhrase(**p) for p in result["flagged_phrases"]],
+        threat_categories=result.get("threat_categories", []),
+        primary_category=result.get("primary_category"),
         explanation=result["explanation"],
         simplified_explanation=result.get("simplified_explanation", ""),
         entities=[NEREntity(**e) for e in result["entities"]],

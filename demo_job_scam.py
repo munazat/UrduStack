@@ -1,85 +1,91 @@
 """
-Job-scam checker demo built on top of UrduStack.
+Job-scam checker for Roman-Urdu job postings.
+
+Paste a job ad and get an instant verdict: scam risk, threat type,
+flagged phrases, and specific advice (e.g. "never pay upfront fees").
 
 Run with:
     python demo_job_scam.py
 
-Paste a job posting and see the normalized Urdu text + scam risk verdict
-with highlighted risky phrases.
+This uses UrduStack's risk scoring and threat classification directly
+— no API server needed.
 """
 
-import os
-
 import gradio as gr
-import requests
 
-API_URL = os.getenv("URDUSTACK_API_URL", "http://localhost:8000")
+from app.utils.risk import compute_risk_score, categorize_risk
 
 
 def check_posting(posting: str):
     if not posting or not posting.strip():
-        return "", "Please paste a job posting."
+        return "Please paste a job posting."
 
-    norm_resp = requests.post(
-        f"{API_URL}/normalize", json={"text": posting}, timeout=30
-    )
-    norm_resp.raise_for_status()
-    normalized = norm_resp.json()["normalized"]
-
-    risk_resp = requests.post(
-        f"{API_URL}/risk-score", json={"text": posting}, timeout=30
-    )
-    risk_resp.raise_for_status()
-    risk = risk_resp.json()
-
-    score = risk.get("score", 0.0)
-    level = risk.get("risk_level", "unknown")
-    explanation = risk.get("explanation", "")
-    flagged = risk.get("flagged_phrases", [])
+    score, confidence, risk_level, flagged, explanation = compute_risk_score(posting)
+    cat_result = categorize_risk(flagged)
 
     if score >= 0.7:
-        verdict = "⚠️ Likely scam / high-risk posting"
+        verdict = "Likely scam / high-risk posting"
     elif score >= 0.4:
-        verdict = "⚡ Some risk — review carefully"
+        verdict = "Some risk — review carefully before responding"
     else:
-        verdict = "✅ Looks legitimate"
+        verdict = "Looks legitimate"
 
     flagged_md = "\n".join(
-        f"- `{p['phrase']}` (contribution {p['contribution']:.2f})"
+        f"- `{p['phrase']}` (contribution: {p['contribution']:.2f})"
         for p in flagged
     )
     if not flagged_md:
         flagged_md = "_No risky phrases detected._"
 
+    cat_labels = {
+        "job_scam": "Fake Job Posting",
+        "phishing": "Phishing",
+        "harassment": "Harassment / Abuse",
+    }
+    threat_type = "None detected"
+    if cat_result["categories"]:
+        threat_type = ", ".join(
+            cat_labels.get(c, c) for c in cat_result["categories"]
+        )
+
+    advice = cat_result.get("advice", "No specific action needed.")
+    if not cat_result["categories"]:
+        advice = "Standard caution applies."
+
     report = (
         f"## {verdict}\n\n"
-        f"**Risk score:** {score:.2f} ({level.upper()})\n\n"
+        f"**Risk score:** {score:.2f} ({risk_level.upper()})  |  "
+        f"**Confidence:** {confidence:.2f}\n\n"
+        f"**Threat type:** {threat_type}\n\n"
         f"**Why:** {explanation}\n\n"
-        f"**Normalized text:**\n{normalized}\n\n"
         f"**Flagged phrases:**\n{flagged_md}\n\n"
         f"---\n"
-        f"_Demo built with UrduStack in ~2 hours._"
+        f"> **Advice:** {advice}"
     )
-    return normalized, report
+    return report
 
 
 def main():
     demo = gr.Interface(
         fn=check_posting,
         inputs=gr.Textbox(
-            label="Job posting",
-            placeholder="Paste the job ad here...",
+            label="Paste a job posting",
+            placeholder="Urgent hiring! Work from home, earn 50000 per week...",
             lines=8,
         ),
-        outputs=[
-            gr.Textbox(label="Normalized Urdu", interactive=False),
-            gr.Markdown(label="Verdict"),
-        ],
-        title="Job Scam Checker",
-        description="A tiny demo app built on the UrduStack API.",
+        outputs=gr.Markdown(label="Verdict"),
+        title="Job Scam Checker — UrduStack",
+        description=(
+            "Paste a job ad (English, Roman Urdu, or mixed). "
+            "UrduStack checks for scam patterns, classifies the threat, "
+            "and gives you specific advice."
+        ),
         examples=[
             ["Urgent hiring! Work from home, earn 50000 per week. Send processing fee to register."],
+            ["job available, 50000 per week, send processing fee"],
             ["We are looking for a Python developer in Lahore. Please send your CV and portfolio."],
+            ["data entry job 100000 per month sirf mobile se kam karein fee 5000 bhejein"],
+            ["kutta kamina tu kabhi nahi sudhry ga"],
         ],
     )
     demo.launch(server_name="0.0.0.0", server_port=7861)
