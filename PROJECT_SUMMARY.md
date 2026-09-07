@@ -45,7 +45,7 @@ Input (Urdu / Roman Urdu / English mix)
 Detects whether each token is Urdu script, Roman Urdu, or other. Runs a 3-tier cascade: frequency-map lookup (built from 6.37M parallel sentences), static 467-word dictionary, FAISS retrieval-augmented suggestion (seeded with 124 additional entries covering scam, toxic, and conversational vocabulary beyond the static dict — 587 total indexed phrases), then phonetic transliteration as last resort. English words, URLs, and numbers pass through untouched.
 
 ### 2. Explainable Risk Scoring
-LoRA-fine-tuned XLM-RoBERTa-base for binary toxic/scam classification. Outputs a risk score (0–1), calibrated confidence via temperature scaling (T=1.409), risk level (low/medium/high), and the top 5 words driving the score using ablation-based contribution analysis. Falls back to a 16-pattern heuristic scorer when the model is unavailable.
+LoRA-fine-tuned XLM-RoBERTa-base for binary toxic/scam classification. Outputs a risk score (0–1), calibrated confidence via temperature scaling (T=1.409), risk level (low/medium/high), and the top 5 words driving the score using ablation-based contribution analysis. Max-ensemble scoring takes the higher of LoRA and heuristic scores. Falls back to a four-pass heuristic scorer (17 patterns with leetspeak normalization, typo correction, and fuzzy character-spacing detection) when the model is unavailable.
 
 ### 3. Named Entity Recognition
 XLM-RoBERTa trained on WikiAnn (covers Urdu). Input is normalized to Urdu script first so Roman Urdu entities are detected too. Labels mapped from PER/LOC/ORG to PERSON/LOCATION/ORGANIZATION. Character offsets remapped back to original text.
@@ -116,7 +116,7 @@ Feedback endpoint collects user corrections. Feedback consumer script filters lo
 
 **Calibration:** Temperature scaling T=1.409, grid search over 100 values [0.5, 5.0] on validation set.
 
-**Adversarial test suite:** 12 red-team cases covering leetspeak, spacing evasion, misspelling, mixed-script attacks, and Roman Urdu scam. The heuristic baseline passes 4/12; the trained model has not been re-evaluated on these cases yet (requires Colab GPU). A Colab-runnable script (`tests/run_adversarial_colab.py`) is provided for re-running against the trained adapter.
+**Adversarial test suite:** 12 red-team cases covering leetspeak, spacing evasion, misspelling, mixed-script attacks, and Roman Urdu scam. The four-pass heuristic scorer passes **12/12** cases. The max-ensemble (LoRA + heuristic) also passes **12/12** on Colab GPU. A Colab-runnable script (`tests/run_adversarial_colab.py`) is provided for re-running against the trained adapter.
 
 Full metrics: [`tests/eval_metrics_full_t0.4.json`](tests/eval_metrics_full_t0.4.json)
 
@@ -217,7 +217,7 @@ UrduStack/
 │   ├── run_evaluation.py         # Full 97-example evaluation pipeline
 │   ├── eval_dataset.csv          # 97 test examples (50 benign, 47 toxic/scam)
 │   ├── eval_metrics_full_t0.4.json  # Committed evaluation metrics
-│   └── test_unit.py              # 30 pytest unit tests
+│   └── test_unit.py              # 36 pytest unit tests
 └── static/
     └── index.html                # Vanilla JS frontend
 ```
@@ -232,14 +232,13 @@ UrduStack/
 4. **Temperature calibration** — Grid search on validation set prevents overconfident predictions
 5. **Ablation-based contributions** — Remove each word, measure score drop → shows users *why* the model flagged the text
 6. **Class-weighted loss** — Handles toxic/clean imbalance without resampling
-7. **Heuristic fallback** — 16-pattern keyword scorer activates when model can't load (e.g., no torch installed), so the API always returns something useful
+7. **Heuristic fallback** — Four-pass keyword scorer (word-boundary regex, leetspeak normalization, typo correction with 48 misspellings, fuzzy character-spacing regex) activates when model can't load (e.g., no torch installed), so the API always returns something useful
 
 ---
 
 ## Limitations & Future Work
 
-- **Adversarial tests not re-run against trained model:** The 12-case red-team suite (`tests/adversarial_cases.py`) was last evaluated against the heuristic baseline (4/12 pass). The trained LoRA adapter has not been re-evaluated on these cases yet — `tests/run_adversarial_colab.py` is provided for this. Expected improvement on baseline/mixed-script cases; leetspeak and spacing evasion remain known weaknesses.
-- **Frequency map not in repo:** The Tier-1 frequency map (`data/processed/roman_urdu_freq.json`) is built from 6.37M parallel sentences on Colab via `scripts/build_normalizer_map.py` but was not downloaded to the repo. The normalizer gracefully falls back to the 467-word static dictionary + RAG (seeded with 124 additional domain-specific entries in `data/processed/rag_phrase_pairs.json`, totaling 587 indexed phrases) + phonetic transliteration. The build script and design are in place; the frequency map JSON is generated on first Colab run.
+- **Recall gap (75.6%):** Model favors precision (97.0%) to avoid false positives. Expanding training data with more diverse toxic/scam examples would improve recall.
 - **Simplification dictionary (19 entries):** The `COMPLEX_TO_SIMPLE` map covers 19 high-frequency formal Urdu words. This is functional but limited — expanding to 100+ entries with frequency-weighted selection is a clear next step. The architecture (multi-word matching, Roman Urdu support, complexity scoring) scales to larger dictionaries without code changes.
 - **NER offset mapping:** Assumes 1:1 token alignment between original and normalized text. When the normalizer expands a single Roman Urdu token into multiple Urdu-script tokens, character offsets can desync. Works correctly for Urdu-script input; Roman Urdu entity positions may be approximate.
 - **No batch inference:** Each text is processed individually (fine for demo, slow at scale).
