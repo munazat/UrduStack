@@ -34,6 +34,29 @@ ADVERSARIAL_DESCRIPTIONS = {
 }
 
 
+def _provenance() -> dict:
+    """Records exactly how this result was produced, so a claim in a doc
+    can be traced back to a re-runnable command instead of taken on faith."""
+    import subprocess
+    from datetime import datetime, timezone
+
+    def _git(*args):
+        try:
+            return subprocess.check_output(
+                ["git", *args], cwd=REPO_ROOT, text=True, stderr=subprocess.DEVNULL
+            ).strip()
+        except Exception:
+            return "unknown"
+
+    return {
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "git_commit": _git("rev-parse", "HEAD"),
+        "git_branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
+        "git_dirty": _git("status", "--porcelain") != "",
+        "command": "python " + " ".join(["tests/run_evaluation.py", *sys.argv[1:]]),
+    }
+
+
 def load_dataset(mode="full"):
     path = TESTS_DIR / "eval_dataset.csv"
     if not path.exists():
@@ -235,6 +258,7 @@ def main():
     import json
 
     metrics = {
+        "provenance": _provenance(),
         "mode": mode,
         "threshold": threshold,
         "total": total,

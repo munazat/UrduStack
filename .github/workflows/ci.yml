@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-heuristic:
+    name: Heuristic tests (unit + adversarial)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test dependencies
+        run: pip install pytest numpy matplotlib
+
+      - name: Run unit tests
+        run: pytest tests/test_unit.py -v --tb=short
+
+      - name: Run adversarial held-out tests (heuristic, in-process)
+        run: python tests/test_adversarial_ci.py

@@ -1,0 +1,108 @@
+text,expected_label,predicted_label,correct,risk_score,confidence,risk_level,flagged_phrases,entities,category,description,explanation
+kya haal hai bhai,0,0,True,0.06,0.94,low,haal | hai | kya,کیا حال ھی بھائی,benign,friendly_greeting,Low risk: model confidence 0.94.
+sab theek hai,0,0,True,0.04,0.96,low,,سب ٹھیک ھی,benign,all_good,Low risk: model confidence 0.96.
+aaj kya kar rahe ho,0,0,True,0.04,0.96,low,,آج کیا کر رہے ہو,benign,casual_question,Low risk: model confidence 0.96.
+bohat shukriya bhai,0,0,True,0.01,0.99,low,,بہت شکریہ بھائی,benign,gratitude,Low risk: model confidence 0.99.
+yar kal milte hain,0,0,True,0.02,0.98,low,,یار کل میلتے ھین,benign,plan_to_meet,Low risk: model confidence 0.98.
+gussa mat karo sab theek ho jayega,0,0,True,0.1,0.9,low,mat | karo | sab | gussa,گوسسا مت کرو سب ٹھیک ہو جایےگا,benign,comforting_words,Low risk: model confidence 0.90.
+bhai kaisa chal raha hai,0,1,False,0.41,0.97,medium,kamina,بھائی کیسا چال راھا ھی,benign,checking_in,Medium risk: model confidence 0.97.
+aaj mausam bohat acha hai,0,0,True,0.04,0.96,low,mausam,آج موسم بہت اچھا ھی,benign,weather_chat,Low risk: model confidence 0.96.
+mujhe bhi acha lagta hai,0,0,True,0.02,0.98,low,,مجھے بھی اچھا لگتا ھی,benign,agreement,Low risk: model confidence 0.98.
+tumhara din kaisa tha,0,1,False,0.41,0.89,medium,kamina | tumhara,تمہارا دن کیسا تھا,benign,asking_about_day,Medium risk: model confidence 0.89.
+yar bohat maza aaya,0,0,True,0.02,0.98,low,,یار بہت مازا اایا,benign,having_fun,Low risk: model confidence 0.98.
+chalo theek hai phir baad mein milte hain,0,0,True,0.05,0.95,low,chalo | hain,چلو ٹھیک ھی پھر بااد میں میلتے ھین,benign,saying_goodbye,Low risk: model confidence 0.95.
+main theek hoon tum sunao,0,0,True,0.02,0.98,low,,میں ٹھیک ھون تم سوناو,benign,replying_to_how_are_you,Low risk: model confidence 0.98.
+bhai tum bohat achay ho,0,0,True,0.02,0.98,low,,بھائی تم بہت اچای ہو,benign,compliment,Low risk: model confidence 0.98.
+koi baat nahi hota rehta hai,0,0,True,0.04,0.96,low,,کوئی باات نہیں ہوتا رےھتا ھی,benign,no_worries,Low risk: model confidence 0.96.
+yar ajeeb baat hai,0,0,True,0.02,0.98,low,,یار اجیب باات ھی,benign,casual_remark,Low risk: model confidence 0.98.
+suno na mujhe tumse baat karni hai,0,0,True,0.06,0.94,low,tumse | suno | na, | تومسے باات,benign,want_to_talk,Low risk: model confidence 0.94.
+aaj khana kya khayega,0,0,True,0.12,0.88,low,khana | kya,آج کھانا کیا خایےگا,benign,asking_about_food,Low risk: model confidence 0.88.
+tumhare ghar sab theek hai,0,0,True,0.04,0.96,low,,تمہارے گھر سب ٹھیک ھی,benign,family_check_in,Low risk: model confidence 0.96.
+bhai kal raat ko kya kiya tumne,0,0,True,0.06,0.94,low,,بھائی کل رات کو کیا کیا تومنے,benign,asking_about_evening,Low risk: model confidence 0.94.
+yar chalo chai peete hain,0,0,True,0.12,0.88,low,peete | chalo,یار چلو چی پیتے ھین,benign,tea_invitation,Low risk: model confidence 0.88.
+tumhari ammi kaisi hain,0,0,True,0.07,0.93,low,,تمہاری امی کیسی ھین,benign,asking_about_mother,Low risk: model confidence 0.93.
+aaj ka din bohat acha tha,0,0,True,0.03,0.97,low,,آج کا دن بہت اچھا تھا,benign,good_day,Low risk: model confidence 0.97.
+main tumhari madad kar sakta hoon,0,0,True,0.1,0.9,low,tumhari | madad | kar,میں تمہاری مدد کر ساکتا ھون,benign,offering_help,Low risk: model confidence 0.90.
+bhai mujhe tumhari zaroorat hai,0,0,True,0.02,0.98,low,,بھائی مجھے تمہاری ضرورت ھی,benign,need_help,Low risk: model confidence 0.98.
+yar bohat achi baat ki tumne,0,0,True,0.03,0.97,low,,یار بہت اچی باات کی تومنے,benign,praising_someone,Low risk: model confidence 0.97.
+tum kab aa rahe ho,0,0,True,0.06,0.94,low,tum,تم کاب اا رہے ہو,benign,asking_when_coming,Low risk: model confidence 0.94.
+aaj to bohat maza aayega,0,0,True,0.04,0.96,low,maza,آج تو بہت مازا آئے گا,benign,excited_about_today,Low risk: model confidence 0.96.
+chalo jaldi milo mujhe tumse baat karni hai,0,0,True,0.03,0.97,low,, | سے با,benign,eager_to_meet,Low risk: model confidence 0.97.
+bhai tension mat lo sab theek hai,0,0,True,0.04,0.96,low,lo,بھائی تےنسیون مت لو سب ٹھیک ھی,benign,dont_worry,Low risk: model confidence 0.96.
+yar main bohat khush hoon aaj,0,0,True,0.02,0.98,low,,یار میں بہت خوش ھون آج,benign,feeling_happy,Low risk: model confidence 0.98.
+kutta kamina,1,1,True,0.99,0.99,high,kutta | kamina,کوتتا کامینا,toxic,baseline_toxic,High risk: model confidence 0.99.
+tu pagal hai,1,1,True,1.0,1.0,high,pagal,تو پاگال ھی,toxic,calling_crazy,High risk: model confidence 1.00.
+bakwass band karo,1,1,True,0.99,0.99,high,bakwass,با | کواس | س بند کرو,toxic,stop_talking_nonsense,High risk: model confidence 0.99.
+harami insaan,1,1,True,0.99,0.99,high,harami, | ھارامی ینساان,toxic,calling_bastard,High risk: model confidence 0.99.
+tujhe sharam nahi aati,1,1,True,0.95,0.95,high,harami | sharam | tujhe,توجھے شارام نہیں ااتی,toxic,shame_on_you,High risk: model confidence 0.95.
+tu kya cheez hai,1,0,False,0.13,0.87,low,cheez | tu,تو کیا چیز ھی,toxic,what_are_you,Low risk: model confidence 0.87.
+nikal yahan se,1,0,False,0.11,0.89,low,,نیکال,toxic,get_out,Low risk: model confidence 0.89.
+chup kar bewakoof,1,1,True,0.95,0.95,high,bewakoof | chup,چپ کر بےواکوف,toxic,shut_up_idiot,High risk: model confidence 0.95.
+main teri jaan le lunga,1,0,False,0.2,0.8,low,teri | jaan | le,ری | جان لے لونگا,toxic,direct_threat,Low risk: model confidence 0.80.
+tu janwar se bhi bura hai,1,0,False,0.11,0.89,low,tu | janwar,تو | جان | وار | ھی,toxic,worse_than_animal,Low risk: model confidence 0.89.
+kameeni aurat,1,1,True,0.96,0.96,high,kameena | kameeni | aurat,کامینی ورات,toxic,insulting_woman,High risk: model confidence 0.96.
+saala kutta,1,1,True,1.0,1.0,high,kutta,ساالا کوتتا,toxic,abusive_prefix,High risk: model confidence 1.00.
+tu paida hi kyun hua,1,1,True,0.93,0.93,high,paida | tu | hi | kyun,تو پیدا ھی کیوں ہوا,toxic,why_were_you_born,High risk: model confidence 0.93.
+bhenchod,1,1,True,1.0,1.0,high,benchod,بھےنچود,toxic,severe_abuse,High risk: model confidence 1.00.
+madarchod,1,1,True,0.99,0.99,high,madarchod,مادارچود,toxic,severe_abuse_2,High risk: model confidence 0.99.
+gandi zubaan band kar,1,1,True,0.98,0.98,high,gandi,گاندی | زوبا,toxic,dirty_mouth,High risk: model confidence 0.98.
+tujhe sabak sikhaoonga,1,1,True,0.73,0.73,high,sabak | tujhe, | توجھے ساباک سیخاونگا,toxic,will_teach_lesson,High risk: model confidence 0.73.
+tu kisi qabil nahi hai,1,0,False,0.24,0.76,low,tu | qabil,کی | سی قابیل,toxic,worthless,Low risk: model confidence 0.76.
+j0b availabl3 50000 p3r w33k s3nd pr0c3ssing f33,1,1,True,0.64,0.93,medium,processing fee | job available | w33k,,scam,leetspeak_scam,Medium risk: model confidence 0.93.
+j o b a v a i l a b l e s e n d f e e,1,1,True,0.51,0.82,medium,job available | send fee | l | b | o | j | e,جوباویلابلےسےندفی,scam,spacing_scam,Medium risk: model confidence 0.82.
+job availble 50000 per wek send procesing fee,1,1,True,1.0,1.0,high,processing fee | job available | 50000,نوکری اویلبلے | پرو | فیس,scam,misspelling,High risk: model confidence 1.00.
+job available 50000 per week send processing fee,1,1,True,1.0,1.0,high,processing fee | 50000 per week | job available | 50000,نوکری او | یلابلے,scam,baseline_scam,High risk: model confidence 1.00.
+work from home 50000 weekly no experience needed send fee,1,1,True,1.0,1.0,high,send fee | 50000,وو | رک فروم ھومے | وی | کلی نو,scam,work_from_home_scam,High risk: model confidence 1.00.
+earn 50000 per week from home send registration fee,1,1,True,1.0,1.0,high,registration fee | 50000 per week,ہفتہ فرو,scam,earn_from_home,High risk: model confidence 1.00.
+urgent job opening send cv with fee 5000,1,1,True,0.99,0.99,high,5000,ویتھ فیس 5000,scam,urgent_opening,High risk: model confidence 0.99.
+job opportunity whatsapp 03001234567 send fee first,1,1,True,1.0,1.0,high,send fee | 03001234567 | fee | send,نوکری وپپورتونیتی وھاتساپپ | فیس فیرست,scam,whatsapp_scam,High risk: model confidence 1.00.
+bhai job chahiye to fee bhejo pehle,1,0,False,0.05,0.95,low,chahiye | bhejo | to | fee,بھائی | فیس بھیجو,scam,urdu_fee_first,Low risk: model confidence 0.95.
+online job ghar baithe 50000 mahina fee bhejein,1,1,True,1.0,1.0,high,kamina | 50000,آن لائن نوکری گھر بیتھے | ماھینا فیس بھےجےین,scam,ghar_baithe_job,High risk: model confidence 1.00.
+aaj hi apply karein sirf 2000 fee,1,1,True,1.0,1.0,high,2000,فیس,scam,apply_today_fee,High risk: model confidence 1.00.
+limited seats hain jaldi fee bhejein,1,0,False,0.36,0.64,low,limited seats | fee | limited | seats | bhejein,لیمیتےد سےاتس ھین جلدی فیس بھےجےین,scam,urgency_tactic,Low risk: model confidence 0.64.
+allah ka wasta fee bhej do job pakki hai,1,0,False,0.09,0.91,low,ka | wasta | hai | fee | pakki,اللہ کا واستا فیس بھیج دو نوکری پاککی ھی,scam,religious_appeal,Low risk: model confidence 0.91.
+registered company job offer send 3000 processing fee,1,1,True,1.0,1.0,high,processing fee, | رے | ست | رےد,scam,legitimacy_claim,High risk: model confidence 1.00.
+part time data entry 40000 monthly send 1500 joining fee,1,1,True,1.0,1.0,high,,پارت | دا | تا ے | مون | تھلی | جو | ینینگ | فیس,scam,data_entry_scam,High risk: model confidence 1.00.
+sirf link click karein aur 10000 jeetein,1,1,True,1.0,1.0,high,10000,صرف لنک کلیکک | ین,scam,click_link_win,High risk: model confidence 1.00.
+job available no interview required just send fee,1,1,True,0.51,0.98,medium,job available | send fee | fee,نو | کری | او | ی | لاب | لے | نو | ین | روی | ے,scam,no_interview,Medium risk: model confidence 0.98.
+bina interview ke job 50000 per month fee bhejein,1,1,True,1.0,1.0,high,50000,مون | فیس,scam,no_interview_urdu,High risk: model confidence 1.00.
+guaranteed job placement advance fee 5000,1,1,True,1.0,1.0,high,guaranteed | 5000,گوارانتید نوکری پلاکےمےنت ادوان,scam,guaranteed_placement,High risk: model confidence 1.00.
+Imran Khan ne Lahore mein PTI ki rally ki,0,0,True,0.01,0.99,low,,عمران خان | لاہور,mixed,political_news_urdu,Low risk: model confidence 0.99.
+yar I am bohat pareshan aaj kal,0,0,True,0.03,0.97,low,,یار ی ام بہت پریشان آج کل,mixed,emotional_codeswitch,Low risk: model confidence 0.97.
+bhai actually mujhe tumse ek baat karni hai,0,0,True,0.02,0.98,low,,,mixed,serious_talk,Low risk: model confidence 0.98.
+government ne zaroori taaleem ke liye nai maloomat jari ki,0,0,True,0.0,1.0,low,,گووےرنمےنت |  | وری,mixed,urdu_script_news,Low risk: model confidence 1.00.
+honestly yar yeh baat mujhe bilkul achi nahi lagi,0,0,True,0.03,0.97,low,,ھو | ستلی یار یہ باات | مجھے بیلکول اچی نہیں لاگی,mixed,honest_opinion,Low risk: model confidence 0.97.
+main ne socha tha ke tum aaj aaoge,0,0,True,0.04,0.96,low,,میں نے سوچا تھا کے تم آج ااوگے,mixed,expectation,Low risk: model confidence 0.96.
+literally bhai itna acha khana kabhi nahi khaya,0,0,True,0.07,0.93,low,khana | khaya,لیتےراللی بھائی,mixed,food_praise,Low risk: model confidence 0.93.
+kal raat ko party mein bohat maza aaya yar,0,0,True,0.03,0.97,low,kal,پارتی,mixed,party_recap,Low risk: model confidence 0.97.
+mujhe lagta hai yeh faisla ghalat tha,0,0,True,0.15,0.85,low,lagta | ghalat | yeh,فیسلا غالات,mixed,disagreement,Low risk: model confidence 0.85.
+tumhara kaam genuinely bohat acha hai,0,0,True,0.03,0.97,low,,,mixed,genuine_praise,Low risk: model confidence 0.97.
+yeh scam nahi hai,0,0,True,0.14,0.86,low,scam,یہ سکام نہیں ھی,edge,negation_mentions_scam,Low risk: model confidence 0.86.
+main kabhi scam nahi karta,0,0,True,0.09,0.91,low,scam,میں | کابھی | سکام نہیں کرتا,edge,negation_self_defense,Low risk: model confidence 0.91.
+bhai yeh to bilkul bhi suspicious nahi lag raha,0,0,True,0.05,0.95,low,,بیلکول | سپیکیووس,edge,negation_suspicious,Low risk: model confidence 0.95.
+scam se bachna zaroori hai,0,0,True,0.29,0.71,low,scam,سکام سے باچنا زاروری ھی,edge,warning_about_scam,Low risk: model confidence 0.71.
+job ki fee kitni hai normally,0,0,True,0.15,0.85,low,fee | kitni | ki,نوکری کی فیس کیتنی ھی نورماللی,edge,asking_about_fee,Low risk: model confidence 0.85.
+us ne kaha free iphone milay ga,0,0,True,0.02,0.98,low,,وس,edge,reporting_scam_claim,Low risk: model confidence 0.98.
+bhai online paise kaise kamaye jaate hain,0,0,True,0.05,0.95,low,paise | jaate | kamaye,بھائی آن لائن پیسے کیسے کامایے جااتے ھین,edge,asking_about_earning,Low risk: model confidence 0.95.
+mujhe ek job offer aaya hai lekin fake lag raha hai,0,0,True,0.01,0.99,low,,,edge,suspicious_offer,Low risk: model confidence 0.99.
+bhai ne books ke liye paise bheje,0,0,True,0.02,0.98,low,,بوکس,edge,money_for_books,Low risk: model confidence 0.98.
+yar dost ne project mein madad maangi,0,0,True,0.01,0.99,low,,یار دوست,edge,friend_project_help,Low risk: model confidence 0.99.
+salary kab milegi is maheene ki,0,1,False,0.89,0.89,high,salary | milegi | ki | maheene | is,تنخواہ کاب میلےگی اس ماھینے کی,edge,asking_about_salary,High risk: model confidence 0.89.
+waah bhai waah kya baat hai,0,0,True,0.02,0.98,low,,وااھ بھائی | وااھ کیا باات ھی,edge,admiration_sarcasm,Low risk: model confidence 0.98.
+kya mast idea hai tumhara,0,0,True,0.05,0.95,low,tumhara,کیا ماست یدےا ھی تمہارا,edge,genuine_praise,Low risk: model confidence 0.95.
+bohat shukriya aap ka,0,0,True,0.02,0.98,low,,بہت شکریہ آپ کا,edge,formal_gratitude,Low risk: model confidence 0.98.
+dua karein ke sab theek ho,0,0,True,0.02,0.98,low,,دوا کارےین کے سب ٹھیک ہو,edge,prayer_request,Low risk: model confidence 0.98.
+yaar kya scene hai aaj kal,0,0,True,0.05,0.95,low,yaar,یاار کیا سکےنے ھی آج کل,edge,casual_slang,Low risk: model confidence 0.95.
+chalo koi masla nahi,0,0,True,0.07,0.93,low,chalo,چلو کوئی مسئلہ نہیں,edge,no_problem,Low risk: model confidence 0.93.
+tumhara number mil sakta hai,0,0,True,0.04,0.96,low,tumhara,تمہارا نمبر مل ساکتا ھی,edge,asking_for_number,Low risk: model confidence 0.96.
+bhai suno ek kaam tha,0,0,True,0.04,0.96,low,,بھائی سن,edge,small_request,Low risk: model confidence 0.96.
+software engineer required karachi,0,0,True,0.08,0.92,low,karachi | engineer | software | required,سوف | تو | ارے ےنگینیر,scam,clean_ad,Low risk: model confidence 0.92.
+"j0b availabl3, 50000 p3r w33k, s3nd pr0c3ssing f33",1,1,True,0.64,0.93,medium,"processing fee | job available | w33k, | s3nd | f33",ج | ب اویلابل,scam,leetspeak_fee,Medium risk: model confidence 0.93.
+"j o b  a v a i l a b l e,  s e n d  p r o c e s s i n g  f e e",1,1,True,0.64,0.87,medium,processing fee | job available | l | c | n | r,نوکری اویلابلے | پروکےسسینگ فیس,scam,spacing_evasion,Medium risk: model confidence 0.87.
+"job availble, 50000 per wek, send procesing fee",1,1,True,1.0,1.0,high,processing fee | 50000,نوکری اویلبلے | پروکےسینگ فیس,scam,misspelling_adv,High risk: model confidence 1.00.
+"job available, 50000 per week, processing fee bhejo",1,1,True,1.0,1.0,high,processing fee | 50000 per week | job available | 50000,نوکری اویلابلے | پروکےسسینگ فیس بھیجو,scam,mixed_script,High risk: model confidence 1.00.
+job hai bhai 50000 per week fee bhejo,1,1,True,0.99,0.99,high,50000 per week | 50000 | fee | per | week,نوکری ھی بھائی,scam,roman_urdu_scam,High risk: model confidence 0.99.
+kutt4 k4m1n4,1,1,True,0.99,0.99,high,kutta | kutti | kutte | kamina | kutt4,کوتت4,toxic,leetspeak_toxic,High risk: model confidence 0.99.
+k u t t a   k a m i n a,1,1,True,0.82,0.87,high,kutta | kamina | u | i | a,کوتتا کامینا,toxic,spacing_toxic,High risk: model confidence 0.87.
+yar tum bohat achay ho lekin kutta,1,1,True,0.99,0.99,high,kutta,یار تم بہت اچای ہو | کوتتا,toxic,mixed_clean_toxic,High risk: model confidence 0.99.
+yar aaj weather bohat achha hai,0,0,True,0.02,0.98,low,,یار آج وےاتھےر,benign,code_switch_clean,Low risk: model confidence 0.98.

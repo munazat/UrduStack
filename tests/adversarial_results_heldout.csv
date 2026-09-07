@@ -1,0 +1,22 @@
+category,description,text,expected,score,predicted_level,flagged_phrases,debug_scores,gates_ci,status
+scam,leet_spacing_combo,pr0c3ss1ng f33 chahiye job k l1ye,medium,-1,"error: HTTPConnectionPool(host='127.0.0.1', port=8124): Read timed out. (read timeout=10)",,,True,FAIL
+scam,case_obfuscation,PrOcEsSiNg FeE required for registration,medium,-1,"error: HTTPConnectionPool(host='127.0.0.1', port=8124): Read timed out. (read timeout=10)",,,True,FAIL
+scam,roman_advance_payment,advance payment karo phir start karein,medium,-1,"error: HTTPConnectionPool(host='127.0.0.1', port=8124): Read timed out. (read timeout=10)",,,True,FAIL
+clean,legit_job_post,We are hiring software engineers in Lahore. Apply at careers.example.com,low,-1,"error: HTTPConnectionPool(host='127.0.0.1', port=8124): Read timed out. (read timeout=10)",,,True,PASS
+clean,casual_chat,aaj mausam bohat acha hai chalo bahar chalte hain,low,0.04,low,,lora=0.04 heur=0.00 method=max_ensemble (lora),True,PASS
+clean,news_headline,Pakistan wins cricket match by 50 runs,low,0.01,low,,lora=0.01 heur=0.00 method=max_ensemble (lora),True,PASS
+clean,legit_medical,doctor ne kaha hai medicine subah shaam leni hai,low,0.06,low,,lora=0.06 heur=0.00 method=max_ensemble (lora),True,PASS
+edge,empty_string,,low,-1,error: 422 Client Error: Unprocessable Content for url: http://127.0.0.1:8124/risk-score,,,True,PASS
+edge,single_word_job,job,low,0.02,low,,lora=0.02 heur=0.00 method=max_ensemble (lora),True,PASS
+edge,url_only,https://example.com/apply-now,low,0.01,low,,lora=0.01 heur=0.00 method=max_ensemble (lora),True,PASS
+clean,legit_fee_context,"The university registration fee is 5000 rupees, payable at the admissions office",medium,0.98,high,registration fee | 5000,lora=0.98 heur=0.49 method=max_ensemble (lora),True,FAIL
+edge,numeric_only,50000 100000 25000,low,1.0,high,,lora=1.00 heur=0.00 method=max_ensemble (lora),True,FAIL
+scam,novel_deposit_fee,pay 5000 security deposit before joining,high,1.0,high,deposit,lora=1.00 heur=0.12 method=max_ensemble (lora),False,PASS
+scam,novel_easy_money,earn easy money daily no experience needed,high,0.98,high,money | experience | earn | no | easy,lora=0.98 heur=0.00 method=max_ensemble (lora),False,PASS
+scam,novel_bank_transfer,transfer 50000 to my easy paisa account now,high,1.0,high,transfer | 50000,lora=1.00 heur=0.12 method=max_ensemble (lora),False,PASS
+scam,novel_guaranteed_income,guaranteed income 100000 monthly apply today,high,1.0,high,guaranteed,lora=1.00 heur=0.12 method=max_ensemble (lora),False,PASS
+scam,roman_fee_request,bhai fee bhej do job pakki hai,high,0.04,low,fee | pakki,lora=0.04 heur=0.00 method=max_ensemble (lora),False,OPEN_GAP
+toxic,novel_abuse_idiot,you are such an idiot bewaqoof,medium,0.97,high,bewakoof | idiot | bewaqoof,lora=0.97 heur=0.15 method=max_ensemble (lora),False,OPEN_GAP
+toxic,novel_abuse_threat,jaan se maar doonga,high,0.1,low,doonga | maar,lora=0.10 heur=0.00 method=max_ensemble (lora),False,OPEN_GAP
+toxic,novel_abuse_mixed,tum log sab chor ho sab k chor,medium,0.96,high,chor,lora=0.96 heur=0.00 method=max_ensemble (lora),False,OPEN_GAP
+edge,repeated_known_word,kutta kutta kutta,high,0.99,high,kutta,lora=0.99 heur=0.41 method=max_ensemble (lora),False,PASS

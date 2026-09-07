@@ -1,0 +1,12 @@
+description,category,text,score,level,ensemble_method,lora_score,heuristic_score
+gadha_nalayak,toxic,tu bilkul gadha aur nalayak insan hai,0.98,high,max_ensemble (lora),0.98,0.61
+verification_charges_scam,scam,"job available, send verification charges to confirm your seat",0.18,low,max_ensemble (lora),0.18,0.08
+investment_scam,scam,"double your investment in 3 days, deposit now and earn guaranteed profit",0.99,high,max_ensemble (lora),0.99,0.24
+romance_gift_card_scam,scam,"i love you baby, just send gift card codes so we can finally meet",0.01,low,max_ensemble (lora),0.01,0.0
+idiot_insult,toxic,you are such an idiot bewaqoof,0.97,high,max_ensemble (lora),0.97,0.15
+death_threat,toxic,jaan se maar doonga,0.1,low,max_ensemble (lora),0.1,0.0
+thief_accusation,toxic,tum log sab chor ho sab k chor,0.96,high,max_ensemble (lora),0.96,0.0
+deposit_before_joining,scam,pay 5000 security deposit before joining,1.0,high,max_ensemble (lora),1.0,0.12
+easy_money,scam,earn easy money daily no experience needed,0.98,high,max_ensemble (lora),0.98,0.0
+bank_transfer_scam,scam,transfer 50000 to my easy paisa account now,1.0,high,max_ensemble (lora),1.0,0.12
+roman_fee_request,scam,bhai fee bhej do job pakki hai,0.04,low,max_ensemble (lora),0.04,0.0
