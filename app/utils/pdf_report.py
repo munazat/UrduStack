@@ -5,13 +5,38 @@ from typing import Dict
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 from matplotlib.backends.backend_pdf import PdfPages
 
 _REPORT_DIR = Path("data/reports")
 
+# Bundled font so Urdu-script text actually renders instead of showing blank
+# glyph boxes. Neither Colab's default image nor the HF Spaces
+# python:3.11-slim container ship an Arabic-capable font, so this can't rely
+# on the host system — it's shipped in the repo instead.
+#
+# Noto Naskh Arabic, not Noto Nastaliq Urdu, on purpose: matplotlib has no
+# text-shaping engine (no HarfBuzz/libraqm), so it draws each Unicode
+# codepoint's default glyph with no contextual joining or ligatures. Nastaliq
+# fonts are built assuming a shaping engine handles that substitution and
+# contain almost no usable unshaped glyphs — verified empirically, it renders
+# nearly blank. Naskh's default glyphs stay legible without shaping, so it's
+# the correct choice here even though real Urdu typography is Nastaliq.
+# OFL-licensed (free): https://fonts.google.com/noto/specimen/Noto+Naskh+Arabic
+_URDU_FONT_PATH = Path(__file__).resolve().parent.parent.parent / "static" / "fonts" / "NotoNaskhArabic-Regular.ttf"
+_URDU_FONT_NAME = "sans-serif"
+if _URDU_FONT_PATH.exists():
+    try:
+        fm.fontManager.addfont(str(_URDU_FONT_PATH))
+        _URDU_FONT_NAME = fm.FontProperties(fname=str(_URDU_FONT_PATH)).get_name()
+    except Exception:
+        pass
+
+# DejaVu Sans covers Latin/numerals; the Urdu font is tried first for any
+# Arabic-script glyphs, then matplotlib falls back per-character.
 _FONT_FAMILY = [
+    _URDU_FONT_NAME,
     "DejaVu Sans",
-    "Noto Sans Arabic",
     "Arial Unicode MS",
     "sans-serif",
 ]
@@ -44,7 +69,13 @@ def _header(fig, title):
         0.5, 0.925, "UrduStack \u2014 Unified Urdu NLP Analysis",
         ha="center", va="top", fontsize=10, color="#7f8c8d",
     )
-    fig.plot([0.08, 0.92], [0.915, 0.915], color="#bdc3c7", lw=0.8)
+    # NOTE: Figure has no .plot() \u2014 that's an Axes method. Draw the divider
+    # as a Line2D artist added directly to the figure instead.
+    from matplotlib.lines import Line2D
+    fig.add_artist(Line2D(
+        [0.08, 0.92], [0.915, 0.915],
+        color="#bdc3c7", lw=0.8, transform=fig.transFigure,
+    ))
 
 
 def _footer(fig):

@@ -232,11 +232,11 @@ class TestRiskLevelFunction:
 
 class TestHeuristicPatterns:
 
-    def test_23_patterns_defined(self):
+    def test_34_patterns_defined(self):
         from app.utils.risk import _PHRASE_DEFS, _WORD_PATTERNS
 
         total = len(_PHRASE_DEFS) + len(_WORD_PATTERNS)
-        assert total == 23
+        assert total == 34
 
     def test_all_contributions_positive(self):
         from app.utils.risk import _PHRASE_DEFS, _WORD_PATTERNS
@@ -362,3 +362,72 @@ class TestRiskCategorization:
             assert len(advice) > 50, f"Category '{cat}' advice too generic"
             assert cat != "job_scam" or "fee" in advice.lower()
             assert cat != "harassment" or "block" in advice.lower()
+
+
+class TestNormalizationLoanwords:
+    """Common English loanwords in job ads should map to real Urdu words,
+    not fall through to phonetic transliteration (which produced unreadable
+    letter-by-letter output like 'available' -> 'اویلابلے')."""
+
+    @skip_no_numpy
+    def test_available_maps_to_real_word(self):
+        from app.utils.normalization import normalize_text
+
+        assert normalize_text("available") == "دستیاب"
+
+    @skip_no_numpy
+    def test_processing_maps_to_real_word(self):
+        from app.utils.normalization import normalize_text
+
+        assert normalize_text("processing") == "کارروائی"
+
+    def test_no_duplicate_keys_in_static_dict(self):
+        # A duplicate key in the dict literal silently keeps the last value
+        # and hides the earlier translation with no error — this catches it.
+        import ast
+        from pathlib import Path
+
+        src = (Path(__file__).resolve().parent.parent / "app" / "utils" / "roman_urdu_map.py").read_text(encoding="utf-8")
+        tree = ast.parse(src)
+        dict_node = tree.body[0].value
+        keys = [k.value for k in dict_node.keys]
+        dupes = sorted({k for k in keys if keys.count(k) > 1})
+        assert not dupes, f"Duplicate keys in ROMAN_TO_URDU silently shadow earlier entries: {dupes}"
+
+
+class TestPdfReport:
+    """A crash here was previously silently swallowed by a bare try/except
+    in the Gradio UI — the 'Download PDF Report' button just did nothing,
+    with no error shown to the user or logged anywhere anyone would look.
+    This test exists so that failure mode can never ship unnoticed again."""
+
+    def test_build_pdf_report_produces_a_real_file(self, tmp_path, monkeypatch):
+        import matplotlib
+        matplotlib.use("Agg")
+        from app.utils import pdf_report
+
+        monkeypatch.setattr(pdf_report, "_REPORT_DIR", tmp_path)
+
+        sample_result = {
+            "risk_score": 0.99,
+            "risk_confidence": 0.99,
+            "risk_level": "high",
+            "original_text": "job available 50000 per week send processing fee",
+            "normalized": "نوکری دستیاب 50000 پر ہفتہ بھیجیں کارروائی فیس",
+            "norm_confidence": 1.0,
+            "explanation": "High risk: detected 3 strong indicator(s).",
+            "flagged_phrases": [
+                {"phrase": "processing fee", "contribution": 0.561},
+                {"phrase": "50000 per week", "contribution": 0.462},
+            ],
+            "entities": [{"word": "karachi", "entity_group": "LOCATION", "score": 0.9}],
+            "entity_context": ["Mentioned locations: karachi"],
+            "simplified_explanation": "",
+            "recommendation": "Do not send money.",
+        }
+
+        path = pdf_report.build_pdf_report(sample_result)
+
+        assert path.exists()
+        assert path.stat().st_size > 1000, "PDF file suspiciously small — likely near-empty output"
+        assert path.suffix == ".pdf"

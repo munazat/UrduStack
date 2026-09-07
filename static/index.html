@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UrduStack — Unified Urdu NLP Analysis</title>
+  <title>UrduStack — Stop Roman-Urdu Job Scams</title>
   <style>
     body { font-family: system-ui, -apple-system, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; color: #1f2937; }
     h1 { font-size: 1.75rem; margin-bottom: 0.25rem; }
@@ -34,11 +34,14 @@
     .success { color: #16a34a; }
     .normalized { direction: rtl; font-size: 1.1rem; padding: 0.5rem; background: #f3f4f6; border-radius: 0.375rem; }
     .pipeline-note { color: #9ca3af; font-size: 0.8rem; margin-top: 1.5rem; }
+    .category { display: inline-block; padding: 0.2rem 0.6rem; margin: 0.25rem 0.25rem 0 0; background: #ede9fe; color: #5b21b6; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; }
+    .category.primary { background: #5b21b6; color: white; }
+    .debug { color: #9ca3af; font-size: 0.75rem; margin-top: 0.5rem; font-family: monospace; }
   </style>
 </head>
 <body>
   <h1>UrduStack</h1>
-  <p class="subtitle">Unified Urdu NLP: normalization, risk scoring, entity recognition, and plain-language explanations</p>
+  <p class="subtitle"><strong>Stop Roman-Urdu job scams before the click.</strong> Paste a job ad, WhatsApp forward, or any suspicious text — normalization, risk scoring, threat type, and plain-language advice.</p>
 
   <textarea id="input" placeholder="yar mujhe pareshan mat karo bro...">job available, 50000 per week, send processing fee</textarea>
   <br>
@@ -113,6 +116,16 @@
         html += '</div>';
       }
 
+      // Threat categories
+      if (d.threat_categories && d.threat_categories.length > 0) {
+        html += '<div class="section"><h3>Threat Type</h3>';
+        d.threat_categories.forEach(function(cat) {
+          var cls = (cat === d.primary_category) ? 'category primary' : 'category';
+          html += '<span class="' + cls + '">' + escHtml(cat.replace('_', ' ')) + '</span> ';
+        });
+        html += '</div>';
+      }
+
       // Flagged phrases
       if (d.flagged_phrases && d.flagged_phrases.length > 0) {
         html += '<div class="section"><h3>Flagged Phrases</h3>';
@@ -134,6 +147,14 @@
       if (d.recommendation) {
         var recClass = d.risk_level === 'high' ? 'danger' : (d.risk_level === 'medium' ? 'warn' : '');
         html += '<div class="recommendation ' + recClass + '"><strong>Recommendation:</strong> ' + escHtml(d.recommendation) + '</div>';
+      }
+
+      // Debug scores (how the verdict was reached — LoRA model vs. heuristic)
+      if (d.debug_scores) {
+        var dbg = d.debug_scores;
+        var loraStr = (dbg.lora_score === null || dbg.lora_score === undefined) ? 'n/a (model not loaded)' : dbg.lora_score.toFixed(2);
+        html += '<p class="debug">score source: ' + escHtml(dbg.ensemble_method || 'unknown') +
+                ' — lora=' + loraStr + ', heuristic=' + dbg.heuristic_score.toFixed(2) + '</p>';
       }
 
       // Feedback form (show when confidence is low)
