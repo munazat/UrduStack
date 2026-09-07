@@ -19,6 +19,10 @@ A unified, self-hosted, code-switch-aware Urdu NLP infrastructure layer for Urdu
 - **Explainable risk scoring** — flags toxic / scam content with a calibrated confidence score and the phrases that drove the decision.
 - **Speech-to-text (Tier 3)** — transcribes spoken Urdu and feeds it into the same pipeline.
 
+## Architecture
+
+![UrduStack Pipeline Architecture](static/architecture.png)
+
 ## API endpoints
 
 | Method | Endpoint | Input | Output |
