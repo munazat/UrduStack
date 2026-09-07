@@ -2,7 +2,7 @@
 
 ## Context
 
-UrduStack is a code-switch-aware Urdu NLP infrastructure layer built as a hackathon MVP in 2 days. Its core capability is **explainable risk scoring** — a LoRA-fine-tuned XLM-RoBERTa model that detects toxic and scam content in Urdu/Roman Urdu code-switched text with 88.8% accuracy and 97.0% precision, providing calibrated confidence scores and per-word contribution explanations. Supporting modules (normalization, NER, speech-to-text, lexical simplification) form the infrastructure that makes risk scoring work on the reality of Pakistani digital text, where Roman Urdu, Urdu script, and English mix freely in the same sentence.
+UrduStack is a code-switch-aware Urdu NLP infrastructure layer built as a hackathon MVP in 2 days. Its core capability is **explainable risk scoring** — a LoRA-fine-tuned XLM-RoBERTa model that detects toxic and scam content in Urdu/Roman Urdu code-switched text (88.8% accuracy, 97.0% precision on a 97-example held-out run), providing calibrated confidence scores and per-word contribution explanations. Supporting modules (normalization, NER, speech-to-text, lexical simplification) form the infrastructure that makes risk scoring work on the reality of Pakistani digital text, where Roman Urdu, Urdu script, and English mix freely in the same sentence.
 
 **Author:** Munaza Tariq
 **Stack:** Python 3.11, FastAPI, Gradio, PyTorch, Hugging Face Transformers, PEFT (LoRA), FAISS, Whisper
@@ -45,7 +45,7 @@ Input (Urdu / Roman Urdu / English mix)
 Detects whether each token is Urdu script, Roman Urdu, or other. Runs a 3-tier cascade: frequency-map lookup (built from 6.37M parallel sentences), static 467-word dictionary, FAISS retrieval-augmented suggestion (seeded with 124 additional entries covering scam, toxic, and conversational vocabulary beyond the static dict — 587 total indexed phrases), then phonetic transliteration as last resort. English words, URLs, and numbers pass through untouched.
 
 ### 2. Explainable Risk Scoring
-LoRA-fine-tuned XLM-RoBERTa-base for binary toxic/scam classification. Outputs a risk score (0–1), calibrated confidence via temperature scaling (T=1.409), risk level (low/medium/high), and the top 5 words driving the score using ablation-based contribution analysis. Max-ensemble scoring takes the higher of LoRA and heuristic scores. Falls back to a four-pass heuristic scorer (17 patterns with leetspeak normalization, typo correction, and fuzzy character-spacing detection) when the model is unavailable.
+LoRA-fine-tuned XLM-RoBERTa-base for binary toxic/scam classification. Outputs a risk score (0–1), calibrated confidence via temperature scaling (T=1.409), risk level (low/medium/high), and the top 5 words driving the score using ablation-based contribution analysis. Max-ensemble scoring takes the higher of LoRA and heuristic scores. Falls back to a five-pass heuristic scorer (12 phrases + 22 single-word patterns with leetspeak normalization, typo correction, fuzzy character-spacing detection, and Levenshtein-distance fuzzy matching for novel misspellings) when the model is unavailable.
 
 ### 3. Named Entity Recognition
 XLM-RoBERTa trained on WikiAnn (covers Urdu). Input is normalized to Urdu script first so Roman Urdu entities are detected too. Labels mapped from PER/LOC/ORG to PERSON/LOCATION/ORGANIZATION. Character offsets remapped back to original text.
@@ -97,28 +97,31 @@ Feedback endpoint collects user corrections. Feedback consumer script filters lo
 
 ### Risk Scorer (trained LoRA XLM-RoBERTa)
 
-**Test set (97 examples — 50 benign, 47 toxic/scam):**
+**Test set (107 examples — full eval_dataset.csv), re-run against the real trained adapter (not the heuristic) on 2026-09-07, commit `d2428ea`:**
 
 | Metric | Score |
 |---|---|
-| Accuracy | 88.8% |
-| Precision (toxic/scam) | 97.0% |
-| Recall (toxic/scam) | 75.6% |
-| F1 (toxic/scam) | 85.0% |
-| Macro Precision | 90.7% |
-| Macro Recall | 87.8% |
-| Macro F1 | 88.5% |
+| Accuracy | 89.7% |
+| Precision (toxic/scam) | 92.5% |
+| Recall (toxic/scam) | 82.2% |
+| F1 (toxic/scam) | 87.1% |
+| Macro Precision | 90.3% |
+| Macro Recall | 88.7% |
+| Macro F1 | 89.3% |
 
-**Per-category breakdown:**
-- Benign: 50/50 correct (100%)
-- Toxic: 19/25 correct (76%)
-- Scam: 17/22 correct (77%)
+**Per-category breakdown:** benign 30/32, edge 18/19, mixed 10/10, scam 22/25, toxic 16/21.
+
+Raw predictions and provenance (git commit, timestamp, exact command): [`tests/eval_results_full_t0.4.csv`](tests/eval_results_full_t0.4.csv), [`tests/eval_metrics_full_t0.4.json`](tests/eval_metrics_full_t0.4.json). An earlier run on a 97-example subset (before the eval set grew to 107 rows) reported accuracy 88.8% / F1 85.0% at higher precision, lower recall — consistent with this run, on a smaller, easier slice.
 
 **Calibration:** Temperature scaling T=1.409, grid search over 100 values [0.5, 5.0] on validation set.
 
-**Adversarial test suite:** 12 red-team cases covering leetspeak, spacing evasion, misspelling, mixed-script attacks, and Roman Urdu scam. The four-pass heuristic scorer passes **12/12** cases (verified locally). A prior Colab run of the max-ensemble (LoRA + heuristic) also scored 12/12, but the output CSV (`tests/adversarial_results_model.csv`) was not saved from that session — re-run `tests/run_adversarial_colab.py` on Colab to produce a committed evidence file.
+**Adversarial test suite — now verified against the real model, not just the heuristic.** The original 12 red-team cases (leetspeak, spacing evasion, misspelling, mixed-script, Roman Urdu scam) pass **12/12** on the deployed max-ensemble (LoRA + heuristic), re-run in-process against `models/risk_lora` on 2026-09-07: [`tests/adversarial_results_model.csv`](tests/adversarial_results_model.csv). The per-case breakdown shows the LoRA model independently driving 8 of the 12 correct scores (not just the heuristic keyword layer) — e.g. `baseline_scam` scores 1.00 from the model alone, `roman_urdu_scam` 0.99.
 
-Full metrics: [`tests/eval_metrics_full_t0.4.json`](tests/eval_metrics_full_t0.4.json)
+**Held-out set (22 cases, written after the heuristic was tuned) is split into three groups, honestly, on purpose:** 10 regression cases (true expected label, currently passing on both the heuristic and the real ensemble — `tests/test_adversarial_ci.py`, gates CI), 2 **model false positives** (heuristic gets these right, but the real deployed ensemble does not — see below), and 9 documented known gaps, reported every run and never silently relabeled to match a wrong output. An earlier version of this suite marked a real death threat ("jaan se maar doonga," scored 0 by the heuristic) as "expected=low / PASS" — that's fixed.
+
+**Known, currently-unfixed false positives in the deployed model** (found by testing the live server, not just the heuristic, on 2026-09-07): `"The university registration fee is 5000 rupees, payable at the admissions office"` scores **0.98 HIGH** from the model alone (heuristic correctly says 0.49 medium); `"50000 100000 25000"` (bare numbers, no other words) scores **1.00 HIGH**. Root-caused, not just observed: this isn't a "numbers" bug specifically — the single word `"salary"` alone scores 0.99, `"12345"` alone scores 0.01, `"99999"` alone scores 0.98. The model has picked up spurious associations with specific tokens from the synthetic scam templates and doesn't generalize cleanly on short/sparse inputs. **Deliberately not patched with a code-level workaround** — a length- or keyword-based override would either reintroduce exactly the keyword whack-a-mole this project moved away from, or risk suppressing genuinely correct short-text catches elsewhere (e.g. `"kutta"` alone correctly scores high, and a blunt "distrust short input" rule would break that). The real fix is retraining with more short-text diversity in the negative class — tracked as the top follow-up item, not attempted here.
+
+**Real-vocabulary generalization test (2026-09-07):** the 8 known heuristic blind spots, plus 3 more, re-run against the actual trained model (not the heuristic) — [`tests/novel_probe_results.csv`](tests/novel_probe_results.csv). None of these words/phrases appear in the heuristic's keyword lists. Result: **7 of 11 are caught by the model through genuine semantic generalization** (`gadha`/`nalayak` insult → 0.98, `investment_scam` → 0.99, `idiot_insult` → 0.97, `thief_accusation` ("chor") → 0.96, `deposit_before_joining` → 1.00, `easy_money` → 0.98, `bank_transfer_scam` → 1.00 — heuristic alone scored ≤0.15 on all seven). **4 remain genuinely missed even by the trained model**, most notably `novel_abuse_threat` ("jaan se maar doonga," a death threat) at 0.10, plus `roman_fee_request` (0.04), `verification_charges_scam` (0.18), and `romance_gift_card_scam` (0.01 — expected, since romance/gift-card scams aren't one of the 7 synthetic training categories). This is the first evidence in this project's history that the trained model generalizes beyond its keyword-matched fallback — and an honest accounting of where it still doesn't.
 
 ### Whisper Speech-to-Text
 - **WER** (Word Error Rate) on 50 Urdu speech samples
@@ -145,6 +148,10 @@ Full metrics: [`tests/eval_metrics_full_t0.4.json`](tests/eval_metrics_full_t0.4
 | pip install failures on Colab | Transient network issues, torchao conflicts | Retry logic (2 attempts with 5s delay), uninstall torchao before install |
 | PEFT fails to restore classifier weights | `modules_to_save` sometimes not restored on load | Direct safetensors read + manual state_dict patch for classifier keys |
 | pandas 3.0.5 deprecation warnings | Colab pip resolves newer pandas | Unpinned pandas version, accept harmless warnings |
+| PDF report export crashed on every call (`Figure.plot` doesn't exist) | Copy-paste error — `.plot()` is an `Axes` method, not `Figure`; the crash was silently swallowed by a bare `try/except` in the UI, so the "Download PDF" button just did nothing, with no error shown | Fixed to draw the divider via `Line2D` on the figure; caught by generating and visually inspecting an actual PDF, not just checking for exceptions |
+| PDF Urdu-script text rendered blank | Matplotlib has no text-shaping engine (no HarfBuzz/libraqm); Nastaliq fonts assume one and ship almost no usable unshaped glyphs | Bundled Noto Naskh Arabic (OFL-licensed, `static/fonts/`) instead — its default glyphs stay legible without shaping. Real Nastaliq calligraphy would need a shaping-aware renderer (e.g. a headless browser), out of scope for now |
+| Common English loanwords ("available," "processing") rendered as phonetic gibberish in Normalized Text | Not in the 467-word static dictionary, so the phonetic transliteration fallback spelled them out letter-by-letter | Added 18 highest-frequency job-posting loanwords with real Urdu translations |
+| NER hallucination silently removed a safety warning | The word "نوکری" (Urdu for "job") was misclassified as an ORGANIZATION entity at 96% confidence; the recommendation logic then wrongly concluded a verified organization was present and dropped the "verify independently" caution from the message | Decoupled the safety caution from NER's organization detection entirely — NER-detected entities are still shown to the user for information, but no longer gate whether a safety warning appears, since NER's org-signal isn't reliable in either direction (over- or under-detects) |
 
 ---
 
@@ -179,6 +186,9 @@ UrduStack/
 ├── app.py                        # HF Spaces entrypoint
 ├── playground.py                 # 4-tab Gradio demo
 ├── demo_job_scam.py              # Standalone job-scam checker
+├── whatsapp_bot.py               # WhatsApp bot (Twilio sandbox)
+├── pdf_report.py                 # PDF report export
+├── architecture.png              # Architecture diagram
 ├── requirements.txt              # 20 dependencies
 ├── Dockerfile                    # python:3.11-slim container
 ├── README.md                     # Docs + HF Spaces metadata
@@ -203,7 +213,9 @@ UrduStack/
 │   ├── generate_scam_data.py     # Synthetic scam data generator
 │   └── consume_feedback.py       # Active learning feedback consumer
 ├── notebooks/
-│   └── train_risk_model_colab.ipynb  # Hardened Colab training notebook
+│   ├── train_risk_model_colab.ipynb  # Hardened Colab training notebook
+│   ├── evaluate_model.ipynb          # Evaluation and metrics notebook
+│   └── launch_demo.ipynb             # Colab Gradio share launcher
 ├── models/
 │   ├── temperature.txt           # Calibrated temperature (1.409)
 │   └── risk_lora/                # Trained LoRA adapter + tokenizer
@@ -213,10 +225,10 @@ UrduStack/
 ├── tests/
 │   ├── adversarial_cases.py      # 12-case red-team test suite (HTTP-based)
 │   ├── run_adversarial_colab.py  # Adversarial re-run against trained model
-│   ├── run_evaluation.py         # Full 97-example evaluation pipeline
-│   ├── eval_dataset.csv          # 97 test examples (50 benign, 47 toxic/scam)
+│   ├── run_evaluation.py         # Full 107-example evaluation pipeline
+│   ├── eval_dataset.csv          # 107 test examples (62 benign, 45 toxic/scam)
 │   ├── eval_metrics_full_t0.4.json  # Committed evaluation metrics
-│   └── test_unit.py              # 36 pytest unit tests
+│   └── test_unit.py              # 42 pytest unit tests
 └── static/
     └── index.html                # Vanilla JS frontend
 ```
@@ -239,7 +251,7 @@ UrduStack/
 
 - **Recall gap (75.6%):** Model favors precision (97.0%) to avoid false positives. Expanding training data with more diverse toxic/scam examples would improve recall.
 - **Frequency map not committed:** The Tier-1 frequency map (`data/processed/roman_urdu_freq.json`) is built from 6.37M parallel sentences on Colab via `scripts/build_normalizer_map.py` but was never downloaded to the repo. The normalizer falls back to the 467-word static dictionary + RAG (587 indexed phrases) + phonetic transliteration. Build script and design are in place; JSON is generated on first Colab run.
-- **Heuristic vocabulary coverage:** The heuristic scorer covers known scam phrases and toxic words, but novel synonyms (e.g., "handling charges" for "processing fee") and common toxic words outside the word list (e.g., "harami") are not caught. The LoRA model may compensate in the max-ensemble, but this has not been independently verified on novel vocabulary.
+- **Heuristic vocabulary coverage:** The heuristic scorer's keyword/phrase lists don't cover open-ended vocabulary by design — that's what the LoRA model is for. This is now verified, not assumed: on 11 novel phrases matching zero heuristic patterns ([`tests/novel_probe_results.csv`](tests/novel_probe_results.csv)), the trained model alone correctly flagged 7 via genuine semantic generalization. **It still misses some, most importantly a direct death threat** ("jaan se maar doonga," scored 0.10 — the single highest-priority open gap in this project), plus a Roman-Urdu fee request, a synonym-based scam phrasing, and romance/gift-card scams (not one of the 7 synthetic training categories, so an expected gap, not a surprising one). Closing the threat-detection gap should be the next training priority, ahead of any new feature.
 - **Simplification dictionary (19 entries):** The `COMPLEX_TO_SIMPLE` map covers 19 high-frequency formal Urdu words. This is functional but limited — expanding to 100+ entries with frequency-weighted selection is a clear next step. The architecture (multi-word matching, Roman Urdu support, complexity scoring) scales to larger dictionaries without code changes.
 - **NER offset mapping:** Assumes 1:1 token alignment between original and normalized text. When the normalizer expands a single Roman Urdu token into multiple Urdu-script tokens, character offsets can desync. Works correctly for Urdu-script input; Roman Urdu entity positions may be approximate.
 - **No batch inference:** Each text is processed individually (fine for demo, slow at scale).

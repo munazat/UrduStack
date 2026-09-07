@@ -47,13 +47,19 @@ sent to a US cloud API.
 | **Cost per request** | $0 | ~$0.01–0.03 |
 | **Data stays local** | Yes | No |
 | **Latency** | Sub-second | 1–3 seconds |
-| **Roman Urdu slang** | Trained on it | Inconsistent |
+| **Roman Urdu slang** | Trained on it | Not head-to-head tested — plausible, not measured |
 | **Offline capable** | Yes | No |
 
-The LoRA adapter achieves **F1 = 85.0%** (precision 97.0%, recall
-75.6%) on a 97-example test set. The heuristic fallback catches
-adversarial evasion (leetspeak, spacing, typos) at **12/12 red-team
-cases**.
+The LoRA adapter achieves **F1 = 87.1%** (precision 92.5%, recall 82.2%)
+on the full 107-example test set — re-run against the real trained
+adapter, not the heuristic: [`tests/eval_metrics_full_t0.4.json`](tests/eval_metrics_full_t0.4.json).
+The deployed max-ensemble (LoRA + heuristic) passes **12/12** on the
+original red-team suite, also re-verified against the real model:
+[`tests/adversarial_results_model.csv`](tests/adversarial_results_model.csv).
+On a separate set of novel phrases matching none of the heuristic's
+keywords, the trained model alone correctly generalizes on 7 of 11 —
+genuine semantic detection, not keyword matching — with 4 open gaps
+honestly tracked, not hidden: [`tests/novel_probe_results.csv`](tests/novel_probe_results.csv).
 
 ## Multi-category threat detection
 
@@ -107,7 +113,7 @@ login, no setup. If it expires, re-run the notebook to get a fresh one.
 |---|---|---|---|
 | GET | `/health` | — | `{status, models_loaded}` |
 | POST | `/normalize` | `{text}` | `{normalized, confidence, segments}` |
-| POST | `/risk-score` | `{text}` | `{score, confidence, risk_level, flagged_phrases, threat_categories, explanation}` |
+| POST | `/risk-score` | `{text}` | `{score, confidence, risk_level, flagged_phrases, threat_categories, explanation, debug_scores}` |
 | POST | `/transcribe` | audio file | `{text, confidence}` |
 | POST | `/ner` | `{text}` | `{entities}` |
 | POST | `/simplify` | `{text}` | `{simplified, changes, complexity}` |
@@ -175,7 +181,7 @@ The container exposes port `7860` and runs `app.py`, which mounts the Gradio pla
 ### Risk model
 - [x] LoRA fine-tuned XLM-RoBERTa on PURUTT (72.7k samples, 5 epochs)
 - [x] Temperature calibration (T=1.41)
-- [x] Metrics: accuracy 88.8%, precision 97.0%, recall 75.6%, F1 85.0%
+- [x] Metrics (full 107-example set, real trained adapter): accuracy 89.7%, precision 92.5%, recall 82.2%, F1 87.1%
 - [x] Max-ensemble scoring (LoRA + heuristic, takes higher score)
 - [x] Four-pass heuristic detection: word-boundary regex, leetspeak normalization, typo correction (48 misspellings), fuzzy character-spacing regex
 - [x] Multi-category threat classification (job scam, phishing, harassment)
@@ -188,7 +194,7 @@ The container exposes port `7860` and runs `app.py`, which mounts the Gradio pla
 - [x] Naive keyword baseline vs. full pipeline comparison mode
 - [x] Active learning feedback loop (Gradio widget → CSV → retrain)
 - [x] Visual explainability (phrase contribution bar chart)
-- [x] PDF report export
+- [x] PDF report export (fixed a crash — `.plot()` was called on a `Figure`, which has no such method — and bundled a font so Urdu-script text renders instead of blank boxes)
 - [x] Colab launch notebook with auto-detect model files
 - [x] Adversarial red-teaming harness
 - [x] WhatsApp bot (Twilio sandbox)
@@ -204,16 +210,41 @@ The container exposes port `7860` and runs `app.py`, which mounts the Gradio pla
 - [x] All model files committed to repo (no manual upload needed)
 
 ### Known limitations
-- **Recall gap:** 75.6% recall — model favors precision (97.0%) to
-  avoid false positives.
+- **Recall gap:** 82.2% recall on the full test set — model favors
+  precision (92.5%) somewhat to avoid false positives.
+- **Short-input false positives (open, not patched):** the model
+  overtriggers on some short/sparse inputs independent of any keyword
+  pattern — a legitimate university fee mention scores 0.98 HIGH, bare
+  numbers ("50000 100000 25000") score 1.00 HIGH, the single word
+  "salary" scores 0.99. Not fixed with a code-level workaround on
+  purpose — no clean rule separates these from genuinely correct
+  short-text catches like "kutta" alone (which should, and does, score
+  high). Needs retraining with more short-text negative examples.
+- **NER unreliable enough to no longer gate safety messaging:** verified
+  directly — the Urdu word for "job" was classified as an ORGANIZATION
+  entity at 96% confidence, which used to silently suppress the "verify
+  the organization independently" caution on scam messages. Fixed by
+  decoupling the caution from NER's org-detection entirely (entities are
+  still shown to the user, just don't control whether the warning
+  appears). NER's own extraction quality on this pipeline's normalized,
+  often-transliterated text is still weak — treat entity output as
+  informational, not authoritative.
+- **Threat-detection gap on novel phrasing:** verified against the real
+  model (not the heuristic) on 11 phrases outside the heuristic's keyword
+  lists — 7 are caught via genuine semantic generalization, 4 are not.
+  The most important open one: a direct death threat ("jaan se maar
+  doonga") scores 0.10, well below the 0.7 "high" threshold. See
+  [`tests/novel_probe_results.csv`](tests/novel_probe_results.csv). This
+  is the top priority for the next training pass, ahead of new features.
 - **Character-spaced evasion:** "k u t t a" style attacks mitigated by
   fuzzy character-spacing regex in the heuristic scorer and
   preprocessing collapse. Passes adversarial tests.
 - **Domain shift:** Trained on social media text; formal/literary Urdu
   may perform differently.
 - **Frequency map:** Tier-1 lookup built on Colab but not committed to
-  repo; normalizer falls back to 467-word dictionary + RAG (seeded with
-  124 additional domain-specific entries, 587 total phrases) + transliteration.
+  repo; normalizer falls back to 467-word dictionary (now with common
+  job-posting loanwords like "available"/"processing" added) + RAG
+  (587 total phrases) + transliteration.
 
 ## Testing
 
@@ -230,29 +261,47 @@ installed.
 
 ### Full evaluation (requires GPU)
 ```bash
-python tests/run_evaluation.py              # all 97 examples
+python tests/run_evaluation.py              # all 107 examples
 python tests/run_evaluation.py --mode adversarial  # 12 red-team cases
 python tests/run_adversarial_colab.py       # standalone adversarial runner
 ```
 
 ### Evaluation results
 
-The trained LoRA adapter achieves on a 97-example test set:
+The trained LoRA adapter, re-run against the full 107-example test set
+(not a subset, and not the heuristic fallback) on 2026-09-07:
 
 | Metric | Score |
 |---|---|
-| Accuracy | 88.8% |
-| Precision | 97.0% |
-| Recall | 75.6% |
-| F1 | 85.0% |
+| Accuracy | 89.7% |
+| Precision | 92.5% |
+| Recall | 82.2% |
+| F1 | 87.1% |
 
-Full metrics: [`tests/eval_metrics_full_t0.4.json`](tests/eval_metrics_full_t0.4.json)
+Full metrics + provenance (git commit, timestamp, exact command):
+[`tests/eval_metrics_full_t0.4.json`](tests/eval_metrics_full_t0.4.json).
+Raw per-example predictions: [`tests/eval_results_full_t0.4.csv`](tests/eval_results_full_t0.4.csv).
 
 ### Adversarial red-team results
 
-The heuristic scorer with four-pass detection (word-boundary regex,
-leetspeak normalization, typo correction, fuzzy character-spacing regex)
-passes **12/12** adversarial cases, including leetspeak, character spacing,
-misspellings, mixed-script, and Roman-Urdu scam phrasing. The max-ensemble
-(LoRA + heuristic) is expected to match or exceed this on Colab GPU.
-Re-run with `tests/run_adversarial_colab.py` to verify with the trained adapter.
+The 12 original red-team cases (leetspeak, character spacing, misspellings,
+mixed-script, Roman-Urdu scam phrasing) pass **12/12** on the deployed
+max-ensemble (LoRA + heuristic) — re-run in-process against the real
+trained adapter, not just the heuristic fallback:
+[`tests/adversarial_results_model.csv`](tests/adversarial_results_model.csv).
+The per-case breakdown shows the LoRA model independently driving 8 of the
+12 correct scores.
+
+A separate **held-out set** of 22 cases, written after the heuristic was
+tuned, is split into three groups on purpose: 10 **regression cases** with
+a true expected label (`tests/test_adversarial_ci.py`, gates CI, currently
+10/10 on both the heuristic and the real ensemble), 2 **model false
+positives** — heuristic passes, the real deployed ensemble does not, kept
+separately and never folded into the passing count — and 9 **documented
+known gaps**. An earlier version of this suite scored a real death threat
+("jaan se maar doonga") as 0 and recorded that as "expected=low / PASS" —
+that's fixed; see [`tests/adversarial_heldout.py`](tests/adversarial_heldout.py)
+for the current split, and Known limitations above for exactly what the
+real model does and doesn't catch. The 2 model false positives are real,
+open, and not patched — see the reasoning in `PROJECT_SUMMARY.md` for why
+a quick fix there would likely do more harm than leaving it documented.
