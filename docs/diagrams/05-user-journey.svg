@@ -1,0 +1,77 @@
+<svg viewBox="0 0 1500 520" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0f766e"/>
+    </marker>
+  </defs>
+  <rect width="1500" height="520" fill="#ffffff"/>
+  <text x="750" y="44" text-anchor="middle" font-size="28" font-weight="700" fill="#111827">User Journey — From Suspicious Message to Informed Action</text>
+  <text x="750" y="70" text-anchor="middle" font-size="15" fill="#6b7280">Three real entry points, one shared decision engine, one feedback loop that keeps improving it</text>
+
+  <!-- Step 1 -->
+  <g>
+    <circle cx="110" cy="180" r="34" fill="#fee2e2"/>
+    <text x="110" y="188" text-anchor="middle" font-size="24">📩</text>
+    <text x="110" y="234" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">Receives a message</text>
+    <text x="110" y="252" text-anchor="middle" font-size="11.5" fill="#6b7280">Job ad, WhatsApp forward,</text>
+    <text x="110" y="267" text-anchor="middle" font-size="11.5" fill="#6b7280">or a suspicious chat</text>
+  </g>
+  <path d="M150 180 L 220 180" stroke="#0f766e" stroke-width="3" marker-end="url(#a5)"/>
+
+  <!-- Step 2: 3 entry points -->
+  <g>
+    <rect x="230" y="110" width="240" height="140" rx="12" fill="#eff6ff" stroke="#93c5fd"/>
+    <text x="350" y="136" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1e3a8a">Chooses a channel</text>
+    <rect x="248" y="150" width="204" height="30" rx="6" fill="white" stroke="#bfdbfe"/>
+    <text x="350" y="170" text-anchor="middle" font-size="12" fill="#1e40af">Pastes into the website</text>
+    <rect x="248" y="186" width="204" height="30" rx="6" fill="white" stroke="#bfdbfe"/>
+    <text x="350" y="206" text-anchor="middle" font-size="12" fill="#1e40af">Forwards to the WhatsApp bot</text>
+    <rect x="248" y="222" width="204" height="24" rx="6" fill="white" stroke="#bfdbfe"/>
+    <text x="350" y="239" text-anchor="middle" font-size="12" fill="#1e40af">Speaks it (Speech Analysis tab)</text>
+  </g>
+  <path d="M470 180 L 540 180" stroke="#0f766e" stroke-width="3" marker-end="url(#a5)"/>
+
+  <!-- Step 3 -->
+  <g>
+    <rect x="550" y="110" width="230" height="140" rx="12" fill="#fdf4ff" stroke="#e9d5ff"/>
+    <text x="665" y="140" text-anchor="middle" font-size="13.5" font-weight="700" fill="#581c87">UrduStack pipeline runs</text>
+    <text x="665" y="168" text-anchor="middle" font-size="12" fill="#374151">Normalize → Score → NER</text>
+    <text x="665" y="186" text-anchor="middle" font-size="12" fill="#374151">→ Categorize → Simplify</text>
+    <text x="665" y="204" text-anchor="middle" font-size="12" fill="#374151">→ Recommend</text>
+    <text x="665" y="228" text-anchor="middle" font-size="11" fill="#6b7280">Sub-second, on-device</text>
+  </g>
+  <path d="M780 180 L 850 180" stroke="#0f766e" stroke-width="3" marker-end="url(#a5)"/>
+
+  <!-- Step 4 -->
+  <g>
+    <rect x="860" y="110" width="250" height="140" rx="12" fill="#fef2f2" stroke="#fca5a5"/>
+    <text x="985" y="140" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7f1d1d">Gets a clear verdict</text>
+    <text x="985" y="164" text-anchor="middle" font-size="12" fill="#374151">Risk level + score</text>
+    <text x="985" y="182" text-anchor="middle" font-size="12" fill="#374151">Threat type (job scam,</text>
+    <text x="985" y="199" text-anchor="middle" font-size="12" fill="#374151">phishing, harassment)</text>
+    <text x="985" y="217" text-anchor="middle" font-size="12" fill="#374151">Which phrases triggered it</text>
+    <text x="985" y="236" text-anchor="middle" font-size="11" fill="#6b7280">Plain-language explanation</text>
+  </g>
+  <path d="M1110 180 L 1180 180" stroke="#0f766e" stroke-width="3" marker-end="url(#a5)"/>
+
+  <!-- Step 5 -->
+  <g>
+    <rect x="1190" y="110" width="260" height="140" rx="12" fill="#ecfdf5" stroke="#6ee7b7"/>
+    <text x="1320" y="140" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f46">Takes action</text>
+    <text x="1320" y="164" text-anchor="middle" font-size="12" fill="#374151">Doesn't send money /</text>
+    <text x="1320" y="182" text-anchor="middle" font-size="12" fill="#374151">reports the ad / blocks</text>
+    <text x="1320" y="199" text-anchor="middle" font-size="12" fill="#374151">the sender / reports to</text>
+    <text x="1320" y="216" text-anchor="middle" font-size="12" fill="#374151">FIA Cyber Crime</text>
+    <text x="1320" y="236" text-anchor="middle" font-size="11" fill="#6b7280">nr3c.gov.pk</text>
+  </g>
+
+  <!-- Feedback loop -->
+  <path d="M1320 250 L 1320 320 L 665 320 L 665 250" stroke="#d97706" stroke-width="2.5" stroke-dasharray="7,5" fill="none" marker-end="url(#a5)"/>
+  <rect x="500" y="332" width="330" height="70" rx="10" fill="#fffbeb" stroke="#fde68a"/>
+  <text x="665" y="358" text-anchor="middle" font-size="13" font-weight="700" fill="#78350f">Optional: "Was this correct?" feedback</text>
+  <text x="665" y="378" text-anchor="middle" font-size="11.5" fill="#92400e">→ data/feedback.csv → consume_feedback.py</text>
+  <text x="665" y="394" text-anchor="middle" font-size="11.5" fill="#92400e">→ retraining-ready CSV for the next model version</text>
+
+  <text x="750" y="450" text-anchor="middle" font-size="13" fill="#6b7280">Every channel calls the same scoring logic — the WhatsApp bot and the website never disagree on a verdict.</text>
+  <text x="750" y="474" text-anchor="middle" font-size="12" fill="#9ca3af">Active learning is a real, working data path — not yet automated into a retraining schedule.</text>
+</svg>

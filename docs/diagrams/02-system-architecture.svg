@@ -1,0 +1,133 @@
+<svg viewBox="0 0 1500 980" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+  </defs>
+  <rect width="1500" height="980" fill="#ffffff"/>
+  <text x="750" y="46" text-anchor="middle" font-size="30" font-weight="700" fill="#111827">UrduStack — System Architecture</text>
+  <text x="750" y="74" text-anchor="middle" font-size="16" fill="#6b7280">One FastAPI process, one ModelManager, four ways in — file-based, no external database</text>
+
+  <!-- LAYER 1: Entry surfaces -->
+  <text x="60" y="118" font-size="16" font-weight="700" fill="#1e40af">1 · ENTRY SURFACES</text>
+  <g font-size="13.5">
+    <rect x="60" y="132" width="330" height="70" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+    <text x="225" y="158" text-anchor="middle" font-weight="700" fill="#1e3a8a">Static Website</text>
+    <text x="225" y="178" text-anchor="middle" fill="#374151">static/index.html — vanilla JS, served at /</text>
+
+    <rect x="410" y="132" width="330" height="70" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+    <text x="575" y="158" text-anchor="middle" font-weight="700" fill="#1e3a8a">Gradio Playground</text>
+    <text x="575" y="178" text-anchor="middle" fill="#374151">playground.py — 4-tab demo, mounted at /playground</text>
+
+    <rect x="760" y="132" width="330" height="70" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+    <text x="925" y="158" text-anchor="middle" font-weight="700" fill="#1e3a8a">WhatsApp Bot</text>
+    <text x="925" y="178" text-anchor="middle" fill="#374151">whatsapp_bot.py — Flask + Twilio webhook</text>
+
+    <rect x="1110" y="132" width="330" height="70" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+    <text x="1275" y="158" text-anchor="middle" font-weight="700" fill="#1e3a8a">Direct API Clients</text>
+    <text x="1275" y="178" text-anchor="middle" fill="#374151">curl / scripts / other services</text>
+  </g>
+
+  <path d="M225 202 L 225 232" stroke="#374151" stroke-width="2.5" marker-end="url(#a2)"/>
+  <path d="M575 202 L 575 232" stroke="#374151" stroke-width="2.5" marker-end="url(#a2)"/>
+  <path d="M925 202 L 925 232" stroke="#374151" stroke-width="2.5" marker-end="url(#a2)"/>
+  <path d="M1275 202 L 1275 232" stroke="#374151" stroke-width="2.5" marker-end="url(#a2)"/>
+
+  <!-- LAYER 2: API -->
+  <text x="60" y="248" font-size="16" font-weight="700" fill="#7c2d12">2 · FASTAPI LAYER (app/main.py + app/api/endpoints.py)</text>
+  <rect x="60" y="262" width="1380" height="72" rx="10" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="750" y="290" text-anchor="middle" font-size="13.5" fill="#7c2d12" font-family="Consolas, monospace">
+    /health · /normalize · /risk-score · /ner · /simplify · /transcribe · /analyze · /feedback
+  </text>
+  <text x="750" y="314" text-anchor="middle" font-size="12.5" fill="#9a3412">CORS-enabled · Pydantic request/response validation · WhatsApp bot calls the same scoring logic directly, in-process</text>
+
+  <path d="M750 334 L 750 364" stroke="#374151" stroke-width="2.5" marker-end="url(#a2)"/>
+
+  <!-- LAYER 3: Orchestration -->
+  <text x="60" y="380" font-size="16" font-weight="700" fill="#4c1d95">3 · ORCHESTRATION — ModelManager (app/models/model_manager.py)</text>
+  <rect x="60" y="394" width="1380" height="66" rx="10" fill="#f5f3ff" stroke="#c4b5fd"/>
+  <text x="750" y="422" text-anchor="middle" font-size="13.5" fill="#4c1d95">Lazy-loads each model on first use · tracks load status · unload() frees memory · analyze_text() runs the full pipeline below</text>
+  <text x="750" y="444" text-anchor="middle" font-size="12" fill="#6d28d9">Degrades gracefully: if torch/transformers aren't installed, falls back to the heuristic scorer and empty NER — verified, doesn't crash</text>
+
+  <path d="M750 460 L 750 490" stroke="#374151" stroke-width="2.5" marker-end="url(#a2)"/>
+
+  <!-- LAYER 4: Core pipeline modules -->
+  <text x="60" y="506" font-size="16" font-weight="700" fill="#065f46">4 · CORE PIPELINE MODULES</text>
+
+  <g font-size="12.5">
+    <rect x="60" y="520" width="255" height="150" rx="10" fill="#ecfdf5" stroke="#6ee7b7"/>
+    <text x="187" y="544" text-anchor="middle" font-weight="700" fill="#065f46">Normalizer</text>
+    <text x="187" y="563" text-anchor="middle" fill="#374151">normalization.py</text>
+    <text x="80" y="588" fill="#374151">1. 467+18-word dictionary</text>
+    <text x="80" y="606" fill="#374151">2. FAISS/TF-IDF RAG (587 phrases)</text>
+    <text x="80" y="624" fill="#374151">3. Phonetic transliteration</text>
+    <text x="80" y="645" fill="#374151">4. Char-spacing collapse</text>
+    <text x="80" y="663" fill="#6b7280" font-size="11">roman_urdu_map.py · rag_normalize.py</text>
+
+    <rect x="330" y="520" width="255" height="150" rx="10" fill="#ecfdf5" stroke="#6ee7b7"/>
+    <text x="457" y="544" text-anchor="middle" font-weight="700" fill="#065f46">Risk Scorer</text>
+    <text x="457" y="563" text-anchor="middle" fill="#374151">risk_model.py + risk.py</text>
+    <text x="350" y="588" fill="#374151">Max-ensemble:</text>
+    <text x="350" y="606" fill="#374151">• LoRA XLM-RoBERTa (semantic)</text>
+    <text x="350" y="624" fill="#374151">• 5-pass heuristic (keyword,</text>
+    <text x="350" y="642" fill="#374151">  leet, typo, spacing, fuzzy)</text>
+    <text x="350" y="663" fill="#6b7280" font-size="11">Temperature-calibrated, T=1.409</text>
+
+    <rect x="600" y="520" width="255" height="150" rx="10" fill="#ecfdf5" stroke="#6ee7b7"/>
+    <text x="727" y="544" text-anchor="middle" font-weight="700" fill="#065f46">Threat Categorizer</text>
+    <text x="727" y="563" text-anchor="middle" fill="#374151">risk.py: categorize_risk()</text>
+    <text x="620" y="588" fill="#374151">Maps flagged phrases to:</text>
+    <text x="620" y="606" fill="#374151">• Fake job posting</text>
+    <text x="620" y="624" fill="#374151">• Phishing</text>
+    <text x="620" y="642" fill="#374151">• Harassment</text>
+    <text x="620" y="663" fill="#6b7280" font-size="11">Each with specific advice</text>
+
+    <rect x="870" y="520" width="255" height="150" rx="10" fill="#ecfdf5" stroke="#6ee7b7"/>
+    <text x="997" y="544" text-anchor="middle" font-weight="700" fill="#065f46">NER</text>
+    <text x="997" y="563" text-anchor="middle" fill="#374151">ner_model.py</text>
+    <text x="890" y="588" fill="#374151">XLM-RoBERTa (WikiAnn)</text>
+    <text x="890" y="606" fill="#374151">PERSON / LOCATION /</text>
+    <text x="890" y="624" fill="#374151">ORGANIZATION</text>
+    <text x="890" y="645" fill="#374151">Informational only —</text>
+    <text x="890" y="663" fill="#6b7280" font-size="11">doesn't gate safety warnings</text>
+
+    <rect x="1140" y="520" width="255" height="150" rx="10" fill="#ecfdf5" stroke="#6ee7b7"/>
+    <text x="1267" y="544" text-anchor="middle" font-weight="700" fill="#065f46">STT + Simplify</text>
+    <text x="1267" y="563" text-anchor="middle" fill="#374151">transcription.py · simplify.py</text>
+    <text x="1160" y="588" fill="#374151">Whisper (base) — Urdu STT</text>
+    <text x="1160" y="606" fill="#374151">feeds the same pipeline</text>
+    <text x="1160" y="628" fill="#374151">18-entry dictionary rewrites</text>
+    <text x="1160" y="646" fill="#374151">complex Urdu → plain Urdu</text>
+  </g>
+
+  <path d="M750 680 L 750 710" stroke="#374151" stroke-width="2.5" marker-end="url(#a2)"/>
+
+  <!-- LAYER 5: Models & data -->
+  <text x="60" y="726" font-size="16" font-weight="700" fill="#831843">5 · MODELS &amp; DATA (file-based — no traditional database)</text>
+  <g font-size="12.5">
+    <rect x="60" y="740" width="330" height="86" rx="10" fill="#fdf2f8" stroke="#f9a8d4"/>
+    <text x="225" y="764" text-anchor="middle" font-weight="700" fill="#831843">models/risk_lora/</text>
+    <text x="225" y="784" text-anchor="middle" fill="#374151">LoRA adapter (4.5 MB) on</text>
+    <text x="225" y="802" text-anchor="middle" fill="#374151">xlm-roberta-base (270M params)</text>
+
+    <rect x="410" y="740" width="330" height="86" rx="10" fill="#fdf2f8" stroke="#f9a8d4"/>
+    <text x="575" y="764" text-anchor="middle" font-weight="700" fill="#831843">data/processed/</text>
+    <text x="575" y="784" text-anchor="middle" fill="#374151">RAG phrase pairs (committed)</text>
+    <text x="575" y="802" text-anchor="middle" fill="#374151">Frequency map (Colab-only, not shipped)</text>
+
+    <rect x="760" y="740" width="330" height="86" rx="10" fill="#fdf2f8" stroke="#f9a8d4"/>
+    <text x="925" y="764" text-anchor="middle" font-weight="700" fill="#831843">app/utils/roman_urdu_map.py</text>
+    <text x="925" y="784" text-anchor="middle" fill="#374151">485-word static dictionary</text>
+    <text x="925" y="802" text-anchor="middle" fill="#374151">(committed, always available)</text>
+
+    <rect x="1110" y="740" width="330" height="86" rx="10" fill="#fdf2f8" stroke="#f9a8d4"/>
+    <text x="1275" y="764" text-anchor="middle" font-weight="700" fill="#831843">data/feedback.csv</text>
+    <text x="1275" y="784" text-anchor="middle" fill="#374151">Active-learning loop —</text>
+    <text x="1275" y="802" text-anchor="middle" fill="#374151">user corrections for retraining</text>
+  </g>
+
+  <rect x="60" y="856" width="1380" height="90" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+  <text x="750" y="882" text-anchor="middle" font-size="13.5" fill="#374151" font-weight="700">Deployment</text>
+  <text x="750" y="904" text-anchor="middle" font-size="12.5" fill="#6b7280">Docker (python:3.11-slim) → Hugging Face Spaces, or Google Colab T4 GPU with a 72-hour public Gradio share link.</text>
+  <text x="750" y="924" text-anchor="middle" font-size="12.5" fill="#6b7280">Self-hosted end-to-end: no data leaves the deployment, no per-request API cost.</text>
+</svg>

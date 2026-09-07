@@ -1,0 +1,78 @@
+<svg viewBox="0 0 1400 760" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0f766e"/>
+    </marker>
+    <linearGradient id="probGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fef2f2"/>
+      <stop offset="100%" stop-color="#fee2e2"/>
+    </linearGradient>
+    <linearGradient id="solGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f0fdfa"/>
+      <stop offset="100%" stop-color="#ccfbf1"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1400" height="760" fill="#ffffff"/>
+
+  <text x="700" y="52" text-anchor="middle" font-size="30" font-weight="700" fill="#111827">From an unguarded message to an informed decision</text>
+  <text x="700" y="82" text-anchor="middle" font-size="17" fill="#6b7280">Why Roman-Urdu scams and harassment slip past existing filters — and what UrduStack does about it</text>
+
+  <!-- PROBLEM PANEL -->
+  <rect x="60" y="130" width="600" height="560" rx="18" fill="url(#probGrad)" stroke="#fca5a5" stroke-width="1.5"/>
+  <text x="90" y="175" font-size="22" font-weight="700" fill="#991b1b">THE PROBLEM</text>
+
+  <rect x="90" y="200" width="540" height="90" rx="10" fill="#ffffff" stroke="#fecaca"/>
+  <text x="110" y="228" font-size="15" font-weight="700" fill="#7f1d1d">Pakistani digital text is code-switched</text>
+  <text x="110" y="252" font-size="13.5" fill="#374151">Urdu script, Roman Urdu, and English mix freely in one</text>
+  <text x="110" y="271" font-size="13.5" fill="#374151">sentence — often within the same message.</text>
+
+  <rect x="90" y="304" width="540" height="110" rx="10" fill="#ffffff" stroke="#fecaca"/>
+  <text x="110" y="332" font-size="15" font-weight="700" fill="#7f1d1d">Example scam ad, verbatim</text>
+  <text x="110" y="358" font-size="14" font-family="Consolas, monospace" fill="#111827">"Urgent hiring! 50000 per week, send</text>
+  <text x="110" y="378" font-size="14" font-family="Consolas, monospace" fill="#111827">processing fee to register."</text>
+  <text x="110" y="401" font-size="12.5" fill="#6b7280">Roman Urdu / English — no Urdu script at all.</text>
+
+  <rect x="90" y="432" width="540" height="100" rx="10" fill="#ffffff" stroke="#fecaca"/>
+  <text x="110" y="460" font-size="15" font-weight="700" fill="#7f1d1d">English-only keyword filters miss it</text>
+  <text x="110" y="484" font-size="13.5" fill="#374151">A naive "processing fee" keyword filter still misses</text>
+  <text x="110" y="503" font-size="13.5" fill="#374151">leetspeak, spacing tricks, and misspellings.</text>
+
+  <rect x="90" y="550" width="540" height="118" rx="10" fill="#ffffff" stroke="#fecaca"/>
+  <text x="110" y="578" font-size="15" font-weight="700" fill="#7f1d1d">Real, documented harm</text>
+  <text x="110" y="602" font-size="13.5" fill="#374151">Fake job postings on Facebook, WhatsApp, and OLX</text>
+  <text x="110" y="621" font-size="13.5" fill="#374151">target Pakistani students and jobseekers who lose</text>
+  <text x="110" y="640" font-size="13.5" fill="#374151">advance "processing fees" to scammers, plus abusive</text>
+  <text x="110" y="659" font-size="13.5" fill="#374151">and harassing content in the same mixed script.</text>
+
+  <!-- ARROW -->
+  <path d="M665 410 L 730 410" stroke="#0f766e" stroke-width="4" marker-end="url(#arrow1)"/>
+
+  <!-- SOLUTION PANEL -->
+  <rect x="740" y="130" width="600" height="560" rx="18" fill="url(#solGrad)" stroke="#5eead4" stroke-width="1.5"/>
+  <text x="770" y="175" font-size="22" font-weight="700" fill="#0f766e">THE SOLUTION — UrduStack</text>
+
+  <rect x="770" y="200" width="540" height="90" rx="10" fill="#ffffff" stroke="#99f6e4"/>
+  <text x="790" y="228" font-size="15" font-weight="700" fill="#134e4a">Normalize code-switched text first</text>
+  <text x="790" y="252" font-size="13.5" fill="#374151">Dictionary + retrieval + phonetic fallback converts</text>
+  <text x="790" y="271" font-size="13.5" fill="#374151">Roman Urdu into consistent Urdu script.</text>
+
+  <rect x="770" y="304" width="540" height="110" rx="10" fill="#ffffff" stroke="#99f6e4"/>
+  <text x="790" y="332" font-size="15" font-weight="700" fill="#134e4a">Same example, scored</text>
+  <text x="790" y="358" font-size="14" font-family="Consolas, monospace" fill="#111827">score 1.00 → HIGH RISK</text>
+  <text x="790" y="378" font-size="13" fill="#374151">Category: Fake Job Posting</text>
+  <text x="790" y="399" font-size="12.5" fill="#6b7280">Verified on the real trained model, 2026-09-07.</text>
+
+  <rect x="770" y="432" width="540" height="100" rx="10" fill="#ffffff" stroke="#99f6e4"/>
+  <text x="790" y="460" font-size="15" font-weight="700" fill="#134e4a">A fine-tuned model, not a keyword list</text>
+  <text x="790" y="484" font-size="13.5" fill="#374151">LoRA-tuned XLM-RoBERTa + a hardened heuristic</text>
+  <text x="790" y="503" font-size="13.5" fill="#374151">layer, combined — catches evasion AND novel scams.</text>
+
+  <rect x="770" y="550" width="540" height="118" rx="10" fill="#ffffff" stroke="#99f6e4"/>
+  <text x="790" y="578" font-size="15" font-weight="700" fill="#134e4a">Explainable, actionable, self-hosted</text>
+  <text x="790" y="602" font-size="13.5" fill="#374151">Shows which phrases drove the score, the threat</text>
+  <text x="790" y="621" font-size="13.5" fill="#374151">category, and specific advice — on-device, no data</text>
+  <text x="790" y="640" font-size="13.5" fill="#374151">leaving the user's infrastructure, $0 per request.</text>
+
+  <text x="700" y="730" text-anchor="middle" font-size="13" fill="#9ca3af">UrduStack — Code-switch-aware Urdu NLP infrastructure</text>
+</svg>

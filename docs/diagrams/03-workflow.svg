@@ -1,0 +1,101 @@
+<svg viewBox="0 0 1500 480" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0f766e"/>
+    </marker>
+  </defs>
+  <rect width="1500" height="480" fill="#ffffff"/>
+  <text x="750" y="42" text-anchor="middle" font-size="28" font-weight="700" fill="#111827">End-to-End Data Flow — analyze_text()</text>
+  <text x="750" y="68" text-anchor="middle" font-size="15" fill="#6b7280">One request, six pipeline stages, one JSON response — app/models/model_manager.py</text>
+
+  <!-- Stage boxes -->
+  <g font-size="13">
+    <!-- 1 -->
+    <rect x="30" y="120" width="205" height="200" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+    <circle cx="132" cy="148" r="16" fill="#2563eb"/>
+    <text x="132" y="153" text-anchor="middle" fill="white" font-weight="700">1</text>
+    <text x="132" y="182" text-anchor="middle" font-weight="700" fill="#1e3a8a">Normalize</text>
+    <text x="50" y="206" fill="#374151">Roman Urdu / English /</text>
+    <text x="50" y="223" fill="#374151">Urdu-script mix →</text>
+    <text x="50" y="240" fill="#374151">consistent Urdu script</text>
+    <text x="50" y="266" fill="#6b7280" font-size="11.5">Confidence score per</text>
+    <text x="50" y="281" fill="#6b7280" font-size="11.5">token segment</text>
+    <text x="50" y="304" fill="#1d4ed8" font-size="11.5" font-weight="600">normalize_with_segments()</text>
+
+    <!-- 2 -->
+    <rect x="270" y="120" width="205" height="200" rx="12" fill="#fef2f2" stroke="#fca5a5" stroke-width="1.5"/>
+    <circle cx="372" cy="148" r="16" fill="#dc2626"/>
+    <text x="372" y="153" text-anchor="middle" fill="white" font-weight="700">2</text>
+    <text x="372" y="182" text-anchor="middle" font-weight="700" fill="#7f1d1d">Risk Score</text>
+    <text x="290" y="206" fill="#374151">Max-ensemble:</text>
+    <text x="290" y="223" fill="#374151">LoRA model score vs.</text>
+    <text x="290" y="240" fill="#374151">heuristic score</text>
+    <text x="290" y="266" fill="#6b7280" font-size="11.5">Score 0-1, risk level,</text>
+    <text x="290" y="281" fill="#6b7280" font-size="11.5">flagged phrases</text>
+    <text x="290" y="304" fill="#b91c1c" font-size="11.5" font-weight="600">RiskModel.score()</text>
+
+    <!-- 3 -->
+    <rect x="510" y="120" width="205" height="200" rx="12" fill="#f0fdfa" stroke="#5eead4" stroke-width="1.5"/>
+    <circle cx="612" cy="148" r="16" fill="#0f766e"/>
+    <text x="612" y="153" text-anchor="middle" fill="white" font-weight="700">3</text>
+    <text x="612" y="182" text-anchor="middle" font-weight="700" fill="#134e4a">NER</text>
+    <text x="530" y="206" fill="#374151">Extract PERSON /</text>
+    <text x="530" y="223" fill="#374151">LOCATION / ORGANIZATION</text>
+    <text x="530" y="240" fill="#374151">from normalized text</text>
+    <text x="530" y="266" fill="#6b7280" font-size="11.5">Offsets remapped to</text>
+    <text x="530" y="281" fill="#6b7280" font-size="11.5">the original text</text>
+    <text x="530" y="304" fill="#0f766e" font-size="11.5" font-weight="600">NERModel.extract_entities()</text>
+
+    <!-- 4 -->
+    <rect x="750" y="120" width="205" height="200" rx="12" fill="#fdf4ff" stroke="#e9d5ff" stroke-width="1.5"/>
+    <circle cx="852" cy="148" r="16" fill="#9333ea"/>
+    <text x="852" y="153" text-anchor="middle" fill="white" font-weight="700">4</text>
+    <text x="852" y="182" text-anchor="middle" font-weight="700" fill="#581c87">Categorize</text>
+    <text x="770" y="206" fill="#374151">Flagged phrases →</text>
+    <text x="770" y="223" fill="#374151">job scam / phishing /</text>
+    <text x="770" y="240" fill="#374151">harassment</text>
+    <text x="770" y="266" fill="#6b7280" font-size="11.5">NER does NOT gate</text>
+    <text x="770" y="281" fill="#6b7280" font-size="11.5">this safety step</text>
+    <text x="770" y="304" fill="#7e22ce" font-size="11.5" font-weight="600">categorize_risk()</text>
+
+    <!-- 5 -->
+    <rect x="990" y="120" width="205" height="200" rx="12" fill="#fffbeb" stroke="#fde68a" stroke-width="1.5"/>
+    <circle cx="1092" cy="148" r="16" fill="#d97706"/>
+    <text x="1092" y="153" text-anchor="middle" fill="white" font-weight="700">5</text>
+    <text x="1092" y="182" text-anchor="middle" font-weight="700" fill="#78350f">Simplify</text>
+    <text x="1010" y="206" fill="#374151">Rewrite the technical</text>
+    <text x="1010" y="223" fill="#374151">explanation into plain-</text>
+    <text x="1010" y="240" fill="#374151">language Urdu</text>
+    <text x="1010" y="266" fill="#6b7280" font-size="11.5">18-word dictionary,</text>
+    <text x="1010" y="281" fill="#6b7280" font-size="11.5">multi-word aware</text>
+    <text x="1010" y="304" fill="#b45309" font-size="11.5" font-weight="600">simplify()</text>
+
+    <!-- 6 -->
+    <rect x="1230" y="120" width="240" height="200" rx="12" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1.5"/>
+    <circle cx="1332" cy="148" r="16" fill="#059669"/>
+    <text x="1332" y="153" text-anchor="middle" fill="white" font-weight="700">6</text>
+    <text x="1332" y="182" text-anchor="middle" font-weight="700" fill="#065f46">Recommend</text>
+    <text x="1250" y="206" fill="#374151">Category-specific,</text>
+    <text x="1250" y="223" fill="#374151">actionable advice —</text>
+    <text x="1250" y="240" fill="#374151">e.g. FIA Cyber Crime link</text>
+    <text x="1250" y="266" fill="#6b7280" font-size="11.5">Full JSON response</text>
+    <text x="1250" y="281" fill="#6b7280" font-size="11.5">returned to caller</text>
+    <text x="1250" y="304" fill="#047857" font-size="11.5" font-weight="600">_generate_recommendation()</text>
+  </g>
+
+  <!-- Arrows -->
+  <path d="M237 220 L 268 220" stroke="#0f766e" stroke-width="3" marker-end="url(#a3)"/>
+  <path d="M477 220 L 508 220" stroke="#0f766e" stroke-width="3" marker-end="url(#a3)"/>
+  <path d="M717 220 L 748 220" stroke="#0f766e" stroke-width="3" marker-end="url(#a3)"/>
+  <path d="M957 220 L 988 220" stroke="#0f766e" stroke-width="3" marker-end="url(#a3)"/>
+  <path d="M1197 220 L 1228 220" stroke="#0f766e" stroke-width="3" marker-end="url(#a3)"/>
+
+  <!-- Input/output labels -->
+  <rect x="30" y="356" width="1440" height="60" rx="10" fill="#f9fafb" stroke="#e5e7eb"/>
+  <text x="50" y="382" font-size="13.5" font-weight="700" fill="#111827">Input:</text>
+  <text x="105" y="382" font-size="13" font-family="Consolas, monospace" fill="#374151">POST /analyze {"text": "job available 50000 per week send processing fee"}</text>
+  <text x="50" y="404" font-size="13.5" font-weight="700" fill="#111827">Output:</text>
+  <text x="120" y="404" font-size="13" fill="#374151">normalized text, risk score + confidence, threat category, flagged phrases, entities, plain-language explanation, recommendation</text>
+
+  <text x="750" y="448" text-anchor="middle" font-size="12" fill="#9ca3af">Every stage runs in-process, in one request — no external service calls, no per-request cost</text>
+</svg>

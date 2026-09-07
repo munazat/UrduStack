@@ -1,0 +1,75 @@
+<svg viewBox="0 0 1500 720" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="1500" height="720" fill="#ffffff"/>
+  <text x="750" y="46" text-anchor="middle" font-size="28" font-weight="700" fill="#111827">Feature Overview</text>
+  <text x="750" y="72" text-anchor="middle" font-size="15" fill="#6b7280">Six implemented capabilities, verified end-to-end against the real trained model</text>
+
+  <!-- Row 1 -->
+  <g font-size="13">
+    <rect x="50" y="110" width="450" height="180" rx="14" fill="#eff6ff" stroke="#93c5fd"/>
+    <text x="80" y="145" font-size="26">🔤</text>
+    <text x="130" y="145" font-size="17" font-weight="700" fill="#1e3a8a">Code-Switch Normalization</text>
+    <text x="80" y="172" fill="#374151">Roman Urdu / Urdu script / English mix →</text>
+    <text x="80" y="192" fill="#374151">consistent Urdu script. Dictionary (485 words)</text>
+    <text x="80" y="212" fill="#374151">+ FAISS retrieval (587 phrases) + phonetic</text>
+    <text x="80" y="232" fill="#374151">transliteration. URLs and numbers pass through.</text>
+    <text x="80" y="262" fill="#1d4ed8" font-weight="600">app/utils/normalization.py</text>
+
+    <rect x="525" y="110" width="450" height="180" rx="14" fill="#fef2f2" stroke="#fca5a5"/>
+    <text x="555" y="145" font-size="26">🛡️</text>
+    <text x="605" y="145" font-size="17" font-weight="700" fill="#7f1d1d">Explainable Risk Scoring</text>
+    <text x="555" y="172" fill="#374151">LoRA-tuned XLM-RoBERTa + 5-pass heuristic,</text>
+    <text x="555" y="192" fill="#374151">combined. F1 = 87.1% on 107 held-out examples.</text>
+    <text x="555" y="212" fill="#374151">Shows the top phrases that drove the score —</text>
+    <text x="555" y="232" fill="#374151">ablation-based, not a black box.</text>
+    <text x="555" y="262" fill="#b91c1c" font-weight="600">app/models/risk_model.py</text>
+
+    <rect x="1000" y="110" width="450" height="180" rx="14" fill="#fdf4ff" stroke="#e9d5ff"/>
+    <text x="1030" y="145" font-size="26">🏷️</text>
+    <text x="1080" y="145" font-size="17" font-weight="700" fill="#581c87">Multi-Category Threat Type</text>
+    <text x="1030" y="172" fill="#374151">Not just "risky" — fake job posting, phishing,</text>
+    <text x="1030" y="192" fill="#374151">or harassment, each with its own specific,</text>
+    <text x="1030" y="212" fill="#374151">actionable advice (e.g. FIA Cyber Crime for</text>
+    <text x="1030" y="232" fill="#374151">harassment).</text>
+    <text x="1030" y="262" fill="#7e22ce" font-weight="600">app/utils/risk.py: categorize_risk()</text>
+  </g>
+
+  <!-- Row 2 -->
+  <g font-size="13">
+    <rect x="50" y="310" width="450" height="180" rx="14" fill="#f0fdfa" stroke="#5eead4"/>
+    <text x="80" y="345" font-size="26">👤</text>
+    <text x="130" y="345" font-size="17" font-weight="700" fill="#134e4a">Named Entity Recognition</text>
+    <text x="80" y="372" fill="#374151">PERSON / LOCATION / ORGANIZATION via</text>
+    <text x="80" y="392" fill="#374151">XLM-RoBERTa (WikiAnn). Informational by</text>
+    <text x="80" y="412" fill="#374151">design — never gates a safety warning, since</text>
+    <text x="80" y="432" fill="#374151">its extraction quality is known to be uneven.</text>
+    <text x="80" y="462" fill="#0f766e" font-weight="600">app/models/ner_model.py</text>
+
+    <rect x="525" y="310" width="450" height="180" rx="14" fill="#fffbeb" stroke="#fde68a"/>
+    <text x="555" y="345" font-size="26">🎙️</text>
+    <text x="605" y="345" font-size="17" font-weight="700" fill="#78350f">Speech-to-Text</text>
+    <text x="555" y="372" fill="#374151">OpenAI Whisper (base) transcribes spoken</text>
+    <text x="555" y="392" fill="#374151">Urdu, with a speech-confidence score, and</text>
+    <text x="555" y="412" fill="#374151">feeds the transcript into the same</text>
+    <text x="555" y="432" fill="#374151">normalization + risk pipeline.</text>
+    <text x="555" y="462" fill="#b45309" font-weight="600">app/utils/transcription.py</text>
+
+    <rect x="1000" y="310" width="450" height="180" rx="14" fill="#ecfdf5" stroke="#6ee7b7"/>
+    <text x="1030" y="345" font-size="26">💬</text>
+    <text x="1080" y="345" font-size="17" font-weight="700" fill="#065f46">Plain-Language Simplify</text>
+    <text x="1030" y="372" fill="#374151">Rewrites the technical explanation into</text>
+    <text x="1030" y="392" fill="#374151">everyday Urdu so a non-technical reader can</text>
+    <text x="1030" y="412" fill="#374151">actually understand the verdict, not just see</text>
+    <text x="1030" y="432" fill="#374151">a score.</text>
+    <text x="1030" y="462" fill="#047857" font-weight="600">app/utils/simplify.py</text>
+  </g>
+
+  <!-- Row 3: distribution -->
+  <rect x="50" y="520" width="1400" height="140" rx="14" fill="#f9fafb" stroke="#e5e7eb"/>
+  <text x="80" y="552" font-size="17" font-weight="700" fill="#111827">🌐 Three Real Surfaces, One Decision Engine</text>
+  <g font-size="13" fill="#374151">
+    <text x="80" y="582">• <tspan font-weight="700">Website</tspan> — static/index.html, self-contained, same-origin API calls</text>
+    <text x="80" y="606">• <tspan font-weight="700">Gradio Playground</tspan> — 4 tabs: Text Analysis, Speech Analysis, Comparison (vs. naive keyword baseline), PDF export</text>
+    <text x="80" y="630">• <tspan font-weight="700">WhatsApp Bot</tspan> — Flask + Twilio, forwards a suspicious message, gets a verdict back in chat — reaches users where scams actually land</text>
+  </g>
+  <text x="1400" y="646" text-anchor="end" font-size="11.5" fill="#9ca3af">All three call the identical scoring pipeline — never a different answer per surface</text>
+</svg>
