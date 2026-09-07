@@ -9,6 +9,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 _FEEDBACK_PATH = Path("data/feedback.csv")
+_last_text_result: dict = {}
 
 
 def _build_flagged_chart(flagged_phrases):
@@ -251,6 +252,9 @@ def unified_text_analysis(text: str):
         f"Normalized (confidence {result['norm_confidence']:.2f}):\n{normalized}"
     )
     chart = _build_flagged_chart(result.get("flagged_phrases", []))
+    _last_text_result.clear()
+    _last_text_result.update(result)
+    _last_text_result["original_text"] = text
     return (
         report,
         norm_header,
@@ -282,6 +286,18 @@ def unified_audio_analysis(audio_path):
         f"**Normalized:** {result['normalized']}"
     )
     return report, transcript_info
+
+
+def _generate_pdf():
+    """Generate a PDF report from the last text analysis."""
+    if not _last_text_result:
+        return None
+    try:
+        from app.utils.pdf_report import build_pdf_report
+        return str(build_pdf_report(_last_text_result))
+    except Exception as e:
+        print(f"PDF generation failed: {e}")
+        return None
 
 
 def build_demo() -> gr.Blocks:
@@ -317,6 +333,17 @@ def build_demo() -> gr.Blocks:
                     inputs=[text_input],
                     outputs=[text_report, text_norm, fb_score, fb_conf, fb_norm, text_chart],
                 )
+
+                pdf_btn = gr.Button("Download PDF Report")
+                pdf_file = gr.File(label="PDF Report", visible=False)
+
+                def _on_pdf_click():
+                    path = _generate_pdf()
+                    if path:
+                        return gr.update(value=path, visible=True)
+                    return gr.update(visible=False)
+
+                pdf_btn.click(_on_pdf_click, outputs=[pdf_file])
 
                 gr.Examples(
                     examples=[
