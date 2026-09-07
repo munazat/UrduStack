@@ -260,3 +260,42 @@ class TestHeuristicPatterns:
         scam_phrases = ["processing fee", "send money", "click here"]
         for phrase in scam_phrases:
             assert phrase in phrase_names
+
+
+class TestTypoCorrection:
+
+    def test_typo_map_has_entries(self):
+        from app.utils.risk import _TYPO_MAP
+
+        assert len(_TYPO_MAP) > 30
+
+    def test_corrects_procesing(self):
+        from app.utils.risk import _correct_typos
+
+        assert _correct_typos("send procesing fee") == "send processing fee"
+
+    def test_corrects_availble(self):
+        from app.utils.risk import _correct_typos
+
+        assert _correct_typos("job availble") == "job available"
+
+    def test_preserves_clean_text(self):
+        from app.utils.risk import _correct_typos
+
+        assert _correct_typos("software engineer required") == "software engineer required"
+
+    def test_misspelled_scam_detected(self):
+        from app.utils.risk import compute_risk_score
+
+        score, _, level, flagged, _ = compute_risk_score(
+            "job availble, 50000 per wek, send procesing fee"
+        )
+        assert score >= 0.4
+        phrases = [p["phrase"] for p in flagged]
+        assert "processing fee" in phrases
+
+    def test_no_self_referencing_entries(self):
+        from app.utils.risk import _TYPO_MAP
+
+        for typo, correct in _TYPO_MAP.items():
+            assert typo != correct, f"'{typo}' maps to itself"

@@ -72,6 +72,36 @@ _WORD_PATTERNS: Dict[str, float] = {
     "benchod": 0.45,
 }
 
+# Common misspellings → correct form (flat typo dictionary).
+# Applied before pattern matching so "procesing fee" → "processing fee".
+_TYPO_MAP: Dict[str, str] = {}
+for _correct, _typos in {
+    "processing": ["procesing", "processng", "proccessing", "processeing", "proceesing"],
+    "registration": ["regstration", "registartion", "registraton", "registeration"],
+    "available": ["availble", "availabe", "avaialable", "avialable", "avilable"],
+    "payment": ["payement", "paymnt", "pament", "paymet"],
+    "money": ["moeny", "moneey", "monney"],
+    "urgent": ["urgnt", "urgenet", "uergent"],
+    "hiring": ["hiring", "hireing", "hiringg"],
+    "limited": ["limted", "limitted", "limitd"],
+    "click": ["clik", "clck", "clicke"],
+    "kutta": ["kuta", "kuttha", "kuttta"],
+    "kamina": ["kameena", "kamena", "kaminay"],
+    "ganja": ["ganja", "ganjja", "ganga"],
+    "bhosri": ["bhosdi", "bosri", "bhosri"],
+    "chutiya": ["chutia", "chutiya", "chootiya"],
+    "madarchod": ["madarchod", "madarchood", "maderchod"],
+    "benchod": ["benchod", "behnchod", "bencho"],
+}.items():
+    for _typo in _typos:
+        if _typo != _correct:
+            _TYPO_MAP[_typo] = _correct
+
+
+def _correct_typos(text: str) -> str:
+    """Replace known misspellings with their correct form."""
+    return " ".join(_TYPO_MAP.get(w, w) for w in text.split())
+
 
 def _risk_level(score: float) -> str:
     if score >= 0.7:
@@ -90,12 +120,13 @@ def _explanation(score: float, phrases: List[str]) -> str:
 
 
 def compute_risk_score(text: str) -> Tuple[float, float, str, List[Dict[str, float]], str]:
-    """Heuristic risk scorer with leetspeak, spacing evasion, and ensemble support.
+    """Heuristic risk scorer with leetspeak, spacing, typo, and ensemble support.
 
-    Three-pass detection:
+    Four-pass detection:
     1. Normal word-boundary matching on collapsed text
     2. Leetspeak normalization + re-check
-    3. Fuzzy character-spacing matching on original text (for spacing evasion)
+    3. Typo correction + re-check (catches common misspellings)
+    4. Fuzzy character-spacing matching on original text (for spacing evasion)
 
     Returns score, confidence, risk_level, flagged phrases with contributions,
     and a human-readable explanation.
@@ -104,22 +135,23 @@ def compute_risk_score(text: str) -> Tuple[float, float, str, List[Dict[str, flo
     text = _normalize_spacing(text)
     lower_text = text.lower()
     leet_text = _normalize_leetspeak(text)
+    typo_text = _correct_typos(lower_text)
     char_spaced = _is_char_spaced(original_text)
 
     flagged: List[Dict[str, float]] = []
     seen: set = set()
     total_contribution = 0.0
 
-    # Pass 1 & 2: normal + leetspeak matching on collapsed text
+    # Pass 1, 2, 3: normal + leetspeak + typo-corrected matching
     for name, contribution, pattern in _PHRASE_NORMAL:
-        if pattern.search(lower_text) or pattern.search(leet_text):
+        if pattern.search(lower_text) or pattern.search(leet_text) or pattern.search(typo_text):
             if name not in seen:
                 seen.add(name)
                 c = round(contribution * 1.65, 3) if contribution >= 0.25 else contribution
                 flagged.append({"phrase": name, "contribution": c})
                 total_contribution += c
 
-    # Pass 3: fuzzy matching for character-spaced evasion
+    # Pass 4: fuzzy matching for character-spaced evasion
     if char_spaced:
         for name, contribution, pattern in _PHRASE_FUZZY:
             if name not in seen and pattern.search(original_text):
@@ -128,9 +160,9 @@ def compute_risk_score(text: str) -> Tuple[float, float, str, List[Dict[str, flo
                 flagged.append({"phrase": name, "contribution": c})
                 total_contribution += c
 
-    # Single-word patterns (substring match on both variants)
+    # Single-word patterns (substring match on all variants)
     for word, contribution in _WORD_PATTERNS.items():
-        if word in lower_text or word in leet_text:
+        if word in lower_text or word in leet_text or word in typo_text:
             c = round(contribution * 1.65, 3) if contribution >= 0.25 else contribution
             flagged.append({"phrase": word, "contribution": c})
             total_contribution += c

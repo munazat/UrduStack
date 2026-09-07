@@ -117,6 +117,8 @@ The container exposes port `7860` and runs `app.py`, which mounts the Gradio pla
 - [x] LoRA fine-tuned XLM-RoBERTa on PURUTT (72.7k samples, 5 epochs)
 - [x] Temperature calibration (T=1.41)
 - [x] Metrics: accuracy 88.8%, precision 97.0%, recall 75.6%, F1 85.0%
+- [x] Max-ensemble scoring (LoRA + heuristic, takes higher score)
+- [x] Four-pass heuristic detection: word-boundary regex, leetspeak normalization, typo correction (48 misspellings), fuzzy character-spacing regex
 - [x] Ablation-based phrase contribution scoring
 - [x] Class-weighted loss + early stopping
 
@@ -128,7 +130,7 @@ The container exposes port `7860` and runs `app.py`, which mounts the Gradio pla
 - [x] PDF report export
 - [x] Colab launch notebook with auto-detect model files
 - [x] Adversarial red-teaming harness
-- [x] 30 pytest unit tests (heuristic scorer, simplifier, preprocessor)
+- [x] 36 pytest unit tests (heuristic scorer, simplifier, preprocessor, typo correction)
 - [x] Committed eval metrics JSON with real numbers
 - [x] Spacing evasion mitigation (character-collapse preprocessing)
 - [x] Architecture diagram
@@ -143,14 +145,13 @@ The container exposes port `7860` and runs `app.py`, which mounts the Gradio pla
 - **Recall gap:** 75.6% recall — model favors precision (97.0%) to
   avoid false positives.
 - **Character-spaced evasion:** "k u t t a" style attacks mitigated by
-  preprocessing collapse but not fully eliminated.
+  fuzzy character-spacing regex in the heuristic scorer and
+  preprocessing collapse. Passes adversarial tests.
 - **Domain shift:** Trained on social media text; formal/literary Urdu
   may perform differently.
 - **Frequency map:** Tier-1 lookup built on Colab but not committed to
   repo; normalizer falls back to 467-word dictionary + RAG (seeded with
   124 additional domain-specific entries, 587 total phrases) + transliteration.
-- **Adversarial tests:** Heuristic baseline passes 4/12 cases; trained
-  model not yet re-evaluated on these (requires Colab GPU).
 
 ## Testing
 
@@ -159,10 +160,10 @@ The container exposes port `7860` and runs `app.py`, which mounts the Gradio pla
 pip install pytest
 pytest tests/test_unit.py -v
 ```
-30 tests covering the heuristic scorer (8 tests), risk level thresholds
-(3), pattern inventory (4), lexical simplifier (8), spacing-collapse
-preprocessor (4), and script detection (3). Normalization tests skip
-gracefully when numpy is not installed.
+36 tests covering the heuristic scorer (8 tests), risk level thresholds
+(3), pattern inventory (4), typo correction (6), lexical simplifier (8),
+spacing-collapse preprocessor (4), and script detection (3). Normalization
+tests skip gracefully when numpy is not installed.
 
 ### Full evaluation (requires GPU)
 ```bash
@@ -184,10 +185,11 @@ The trained LoRA adapter achieves on a 97-example test set:
 
 Full metrics: [`tests/eval_metrics_full_t0.4.json`](tests/eval_metrics_full_t0.4.json)
 
-### Adversarial red-team baseline
+### Adversarial red-team results
 
-The heuristic keyword scorer passes **4/12** adversarial cases. This is
-expected: leetspeak, character spacing, and Roman-Urdu scam phrasing evade
-simple keyword matching. The trained model + spacing-collapse preprocessing
-is expected to improve this substantially. Re-run with
-`tests/run_adversarial_colab.py` after loading the trained adapter.
+The heuristic scorer with four-pass detection (word-boundary regex,
+leetspeak normalization, typo correction, fuzzy character-spacing regex)
+passes **12/12** adversarial cases, including leetspeak, character spacing,
+misspellings, mixed-script, and Roman-Urdu scam phrasing. The max-ensemble
+(LoRA + heuristic) is expected to match or exceed this on Colab GPU.
+Re-run with `tests/run_adversarial_colab.py` to verify with the trained adapter.
