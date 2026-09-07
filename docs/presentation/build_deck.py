@@ -178,13 +178,6 @@ def header(slide, title, subtitle=None, kicker=None):
     box(slide, Inches(0.6), Inches(1.66), Inches(12.13), Pt(2.2), fill=TEAL_BORDER, radius=False)
 
 
-def footer(slide, n):
-    text(slide, Inches(0.6), Inches(7.14), Inches(6), Inches(0.3), "UrduStack",
-         size=11, color=SUBTLE)
-    text(slide, Inches(11.9), Inches(7.14), Inches(0.9), Inches(0.3), str(n),
-         size=11, color=SUBTLE, align=PP_ALIGN.RIGHT)
-
-
 def pic_fit(slide, path, x, y, max_w, max_h):
     from PIL import Image
     with Image.open(path) as im:
@@ -203,7 +196,8 @@ def pic_fit(slide, path, x, y, max_w, max_h):
 s = add_slide()
 bg(s, INK)
 box(s, Inches(0), Inches(0), SW, Inches(0.12), fill=TEAL, radius=False)
-text(s, Inches(0.9), Inches(2.3), Inches(11.5), Inches(0.6), "🇵🇰  URDUSTACK", size=20, bold=True, color=TEAL_BORDER)
+box(s, Inches(0.9), Inches(2.42), Inches(0.34), Inches(0.16), fill=TEAL_BORDER, radius=False)
+text(s, Inches(1.4), Inches(2.3), Inches(11.5), Inches(0.6), "PAKISTAN  ·  URDU NLP", size=18, bold=True, color=TEAL_BORDER)
 text(s, Inches(0.9), Inches(2.85), Inches(11.5), Inches(1.5), "UrduStack", size=64, bold=True, color=WHITE)
 text(s, Inches(0.9), Inches(3.9), Inches(11.5), Inches(0.9),
      "Stop Roman-Urdu job scams before the click.", size=26, color=TEAL_BORDER, bold=True)
@@ -218,7 +212,6 @@ box(s, Inches(6.5), Inches(5.7), Inches(5.4), Inches(1.0), fill=RGBColor(0x1f, 0
 text(s, Inches(6.75), Inches(5.85), Inches(5.0), Inches(0.35), "Munaza Tariq", size=20, bold=True, color=WHITE)
 text(s, Inches(6.75), Inches(6.22), Inches(5.0), Inches(0.35), "Team", size=13, color=SUBTLE)
 
-footer(s, 1)
 
 # ============================================================ SLIDE 2 — PROBLEM
 s = add_slide()
@@ -247,7 +240,6 @@ bullets(s, Inches(0.6), Inches(4.35), Inches(12.1), Inches(2.5), [
      "Fake job postings on Facebook, WhatsApp, and OLX target Pakistani students and jobseekers who lose money to advance-fee scams — alongside abusive and harassing content in the same mixed script"),
 ], size=20, color=INK, space_after=16)
 
-footer(s, 2)
 
 # ============================================================ SLIDE 3 — SOLUTION
 s = add_slide()
@@ -285,7 +277,6 @@ for i, (a, b, c) in enumerate(rows):
         text(s, Inches(9.9), y + Inches(0.1), Inches(1.2), Inches(0.35), b, size=14, bold=True, color=TEAL)
         text(s, Inches(11.1), y + Inches(0.1), Inches(1.3), Inches(0.35), c, size=14, color=RGBColor(0x99,0x1b,0x1b))
 
-footer(s, 3)
 
 # ============================================================ SLIDE 4 — FEATURES
 s = add_slide()
@@ -312,7 +303,6 @@ for i, (icon, title, sub, fillc, linec, txtc) in enumerate(feats):
     text(s, x + Inches(0.22), y + Inches(0.78), cw - Inches(0.44), Inches(0.55), title, size=17, bold=True, color=txtc)
     text(s, x + Inches(0.22), y + Inches(1.32), cw - Inches(0.44), Inches(0.55), sub, size=13, color=INK)
 
-footer(s, 4)
 
 # ============================================================ SLIDE 5 — ARCHITECTURE
 s = add_slide()
@@ -320,46 +310,35 @@ bg(s)
 header(s, "System Architecture", "One FastAPI process, one ModelManager, three real entry points, no external database")
 
 layers = [
-    ("Entry Surfaces", ["Website", "Gradio Playground", "WhatsApp Bot"], BLUE_LIGHT, BLUE_BORDER, BLUE),
-    ("FastAPI Layer", ["/normalize", "/risk-score", "/ner", "/analyze", "/feedback"], AMBER_LIGHT, AMBER_BORDER, AMBER),
-    ("ModelManager", ["Lazy-loads models", "Orchestrates pipeline", "Graceful fallback"], PURPLE_LIGHT, PURPLE_BORDER, PURPLE),
-    ("Core Modules", ["Normalizer", "Risk Scorer", "NER", "STT", "Simplify"], GREEN_LIGHT, GREEN_BORDER, GREEN),
-    ("Models & Data", ["LoRA adapter (4.5 MB)", "485-word dictionary", "feedback.csv"], RED_LIGHT, RED_BORDER, RGBColor(0x7f,0x1d,0x1d)),
+    ("Entry Surfaces", "Website  ·  Gradio Playground  ·  WhatsApp Bot", BLUE_LIGHT, BLUE_BORDER, BLUE),
+    ("FastAPI Layer", "/normalize  ·  /risk-score  ·  /ner  ·  /analyze  ·  /feedback", AMBER_LIGHT, AMBER_BORDER, AMBER),
+    ("ModelManager", "Lazy-loads models  ·  Orchestrates pipeline  ·  Graceful fallback", PURPLE_LIGHT, PURPLE_BORDER, PURPLE),
+    ("Core Modules", "Normalizer  ·  Risk Scorer  ·  NER  ·  STT  ·  Simplify", GREEN_LIGHT, GREEN_BORDER, GREEN),
+    ("Models & Data", "LoRA adapter (4.5 MB)  ·  485-word dictionary  ·  feedback.csv", RED_LIGHT, RED_BORDER, RGBColor(0x7f,0x1d,0x1d)),
 ]
-y0 = Inches(1.95)
-lh = Inches(0.92)
-gap = Inches(0.12)
-row_w = 9.38          # inches, the white row container width
-row_start_x = 3.55     # inches, where chips begin
-row_end_x = 3.35 + row_w - 0.2   # leave a margin before the row's right edge
-for i, (name, items, fillc, linec, txtc) in enumerate(layers):
+y0 = Inches(1.85)
+lh = Inches(0.86)
+gap = Inches(0.13)
+row_w = Inches(9.38)          # the white row container width
+label_w = Inches(2.55)
+row_x = Inches(3.35)
+# Single word-wrapped line per row instead of individually positioned pill
+# chips — a fixed layout that cannot overflow or misplace an item, by
+# construction, regardless of label length.
+for i, (name, items_line, fillc, linec, txtc) in enumerate(layers):
     y = y0 + i * (lh + gap)
-    box(s, Inches(0.6), y, Inches(2.55), lh, fill=fillc, line=linec)
-    text(s, Inches(0.78), y + Inches(0.1), Inches(2.2), Inches(0.35), f"{i+1}", size=14, bold=True, color=txtc)
-    text(s, Inches(0.78), y + Inches(0.36), Inches(2.2), Inches(0.5), name, size=15, bold=True, color=txtc)
-    box(s, Inches(3.35), y, Inches(row_w), lh, fill=WHITE, line=linec, line_w=0.75)
-
-    # Fit chips to the available row width: shrink per-char width and gap
-    # until the total fits, rather than a fixed formula that can overflow.
-    n = len(items)
-    for char_w, gap_w, base in [(0.105, 0.14, 0.3), (0.09, 0.10, 0.24), (0.078, 0.08, 0.2)]:
-        widths = [base + char_w * len(it) for it in items]
-        total = sum(widths) + gap_w * (n - 1)
-        if total <= (row_end_x - row_start_x):
-            break
-    chip_x = row_start_x
-    for it, w_in in zip(items, widths):
-        w = Inches(w_in)
-        box(s, chip_x, y + Inches(0.24), w, Inches(0.46), fill=fillc, line=None)
-        text(s, chip_x, y + Inches(0.24), w, Inches(0.46), it, size=12.5, color=txtc, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-        chip_x = chip_x + w + Inches(gap_w)
+    box(s, Inches(0.6), y, label_w, lh, fill=fillc, line=linec)
+    text(s, Inches(0.78), y + Inches(0.08), Inches(2.2), Inches(0.32), f"{i+1}", size=14, bold=True, color=txtc)
+    text(s, Inches(0.78), y + Inches(0.32), Inches(2.2), Inches(0.5), name, size=15, bold=True, color=txtc)
+    box(s, row_x, y, row_w, lh, fill=WHITE, line=linec, line_w=0.75)
+    text(s, row_x + Inches(0.3), y, row_w - Inches(0.6), lh, items_line,
+         size=14, color=txtc, anchor=MSO_ANCHOR.MIDDLE, line_spacing=1.15)
     if i < len(layers) - 1:
         arrow = s.shapes.add_shape(MSO_SHAPE.DOWN_ARROW, Inches(1.78), y + lh - Inches(0.02), Inches(0.3), gap + Inches(0.05))
         arrow.fill.solid(); arrow.fill.fore_color.rgb = SUBTLE; arrow.line.fill.background()
 
-text(s, Inches(0.6), Inches(6.85), Inches(12), Inches(0.35),
+text(s, Inches(0.6), Inches(6.98), Inches(12), Inches(0.35),
      "Self-hosted: Docker → Hugging Face Spaces, or Colab T4 GPU with a public share link.", size=13, italic=True, color=SUBTLE)
-footer(s, 5)
 
 # ============================================================ SLIDE 6 — HOW IT WORKS
 s = add_slide()
@@ -390,15 +369,14 @@ for i, (n, name, desc, fillc, linec, txtc) in enumerate(stages):
         ar = s.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, x + bw - Inches(0.02), by + bh/2 - Inches(0.1), Inches(0.2), Inches(0.2))
         ar.fill.solid(); ar.fill.fore_color.rgb = SUBTLE; ar.line.fill.background()
 
-box(s, Inches(0.6), Inches(5.15), Inches(12.13), Inches(1.55), fill=GRAY_LIGHT, line=GRAY_BORDER)
+box(s, Inches(0.6), Inches(5.15), Inches(12.13), Inches(1.8), fill=GRAY_LIGHT, line=GRAY_BORDER)
 text(s, Inches(0.85), Inches(5.32), Inches(11.6), Inches(0.4), "Example, live:", size=15, bold=True, color=INK)
-text(s, Inches(0.85), Inches(5.68), Inches(11.6), Inches(0.45),
-     '"job available 50000 per week send processing fee"  →  score 1.00, HIGH, "Fake Job Posting"',
-     size=17, color=TEAL, font="Consolas")
-text(s, Inches(0.85), Inches(6.15), Inches(11.6), Inches(0.4),
+text(s, Inches(0.85), Inches(5.65), Inches(11.6), Inches(0.75),
+     '"job available 50000 per week send processing fee"\n→  score 1.00, HIGH, "Fake Job Posting"',
+     size=16, color=TEAL, font="Consolas", line_spacing=1.25)
+text(s, Inches(0.85), Inches(6.62), Inches(11.6), Inches(0.4),
      "Every stage runs in-process — no external API calls, sub-second response.", size=13, italic=True, color=SUBTLE)
 
-footer(s, 6)
 
 # ============================================================ SLIDE 7 — TECHNICAL IMPLEMENTATION
 s = add_slide()
@@ -436,14 +414,13 @@ text(s, Inches(0.9), Inches(6.5), Inches(11.6), Inches(0.5),
      "Verified: 89.7% accuracy · 87.1% F1 (107 test examples) · 12/12 adversarial cases · 46/46 unit tests",
      size=15, bold=True, color=WHITE, anchor=MSO_ANCHOR.MIDDLE)
 
-footer(s, 7)
 
 # ============================================================ SLIDE 8 — UI/UX DEMO
 s = add_slide()
 bg(s)
 header(s, "UI/UX & Demonstration", "Real, live output — not a mockup")
 
-pic_fit(s, "docs/screenshots/04_gradio_result.png", Inches(0.55), Inches(1.95), Inches(7.6), Inches(5.05))
+pic_fit(s, "docs/screenshots/04_gradio_result_slide_crop.png", Inches(0.55), Inches(1.95), Inches(7.6), Inches(5.05))
 box(s, Inches(0.55), Inches(1.95), Inches(7.6), Inches(5.05), fill=None, line=GRAY_BORDER, line_w=1.0)
 
 text(s, Inches(8.35), Inches(1.95), Inches(4.4), Inches(0.4), "What the user sees", size=17, bold=True, color=TEAL)
@@ -457,7 +434,6 @@ bullets(s, Inches(8.35), Inches(2.4), Inches(4.4), Inches(4.5), [
     "Optional feedback loop feeds future retraining",
 ], size=14.5, color=INK, space_after=10)
 
-footer(s, 8)
 
 # ============================================================ SLIDE 9 — IMPACT
 s = add_slide()
@@ -480,7 +456,6 @@ bullets(s, Inches(7.15), Inches(2.65), Inches(5.3), Inches(3.6), [
     "WhatsApp bot is the highest-leverage distribution channel — reaches victims, not just judges",
 ], size=15, color=INK, space_after=12)
 
-footer(s, 9)
 
 # ============================================================ SLIDE 10 — CONCLUSION
 s = add_slide()
@@ -509,9 +484,6 @@ box(s, Inches(0.7), Inches(6.55), Inches(11.93), Inches(0.65), fill=TEAL, radius
 text(s, Inches(0.7), Inches(6.68), Inches(11.93), Inches(0.4),
      "UrduStack — because the language your users actually type in deserves real protection.",
      size=17, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
-
-text(s, Inches(0.7), Inches(7.14), Inches(6), Inches(0.3), "UrduStack", size=11, color=SUBTLE)
-text(s, Inches(11.9), Inches(7.14), Inches(0.9), Inches(0.3), "10", size=11, color=SUBTLE, align=PP_ALIGN.RIGHT)
 
 import os, time
 out_path = "docs/presentation/UrduStack_Presentation.pptx"
