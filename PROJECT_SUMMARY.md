@@ -2,7 +2,7 @@
 
 ## Context
 
-UrduStack is a code-switch-aware Urdu NLP infrastructure layer built as a hackathon MVP in 2 days. It provides a unified pipeline for Urdu text normalization, risk scoring, speech-to-text, named entity recognition, and lexical simplification — designed to handle the reality of Pakistani digital text where Roman Urdu, Urdu script, and English mix freely in the same sentence.
+UrduStack is a code-switch-aware Urdu NLP infrastructure layer built as a hackathon MVP in 2 days. Its core capability is **explainable risk scoring** — a LoRA-fine-tuned XLM-RoBERTa model that detects toxic and scam content in Urdu/Roman Urdu code-switched text with 88.8% accuracy and 97.0% precision, providing calibrated confidence scores and per-word contribution explanations. Supporting modules (normalization, NER, speech-to-text, lexical simplification) form the infrastructure that makes risk scoring work on the reality of Pakistani digital text, where Roman Urdu, Urdu script, and English mix freely in the same sentence.
 
 **Author:** Munaza Tariq
 **Stack:** Python 3.11, FastAPI, Gradio, PyTorch, Hugging Face Transformers, PEFT (LoRA), FAISS, Whisper
@@ -19,7 +19,7 @@ Input (Urdu / Roman Urdu / English mix)
   ├── Normalization Pipeline (3-tier cascade)
   │     1. Frequency map (6.37M parallel sentences → JSON lookup)
   │     2. Static dictionary (467 Roman→Urdu word mappings)
-  │     3. RAG suggestion (FAISS char-3-gram TF-IDF similarity)
+  │     3. RAG suggestion (FAISS char-3-gram TF-IDF, 587 phrases = 467 static + 124 seed extensions)
   │     4. Phonetic transliteration (greedy longest-match fallback)
   │
   ├── Risk Scorer (LoRA XLM-RoBERTa-base)
@@ -42,7 +42,7 @@ Input (Urdu / Roman Urdu / English mix)
 ## Features
 
 ### 1. Code-Switch-Aware Normalization
-Detects whether each token is Urdu script, Roman Urdu, or other. Runs a 3-tier cascade: frequency-map lookup (built from 6.37M parallel sentences), static 467-word dictionary, FAISS retrieval-augmented suggestion, then phonetic transliteration as last resort. English words, URLs, and numbers pass through untouched.
+Detects whether each token is Urdu script, Roman Urdu, or other. Runs a 3-tier cascade: frequency-map lookup (built from 6.37M parallel sentences), static 467-word dictionary, FAISS retrieval-augmented suggestion (seeded with 124 additional entries covering scam, toxic, and conversational vocabulary beyond the static dict — 587 total indexed phrases), then phonetic transliteration as last resort. English words, URLs, and numbers pass through untouched.
 
 ### 2. Explainable Risk Scoring
 LoRA-fine-tuned XLM-RoBERTa-base for binary toxic/scam classification. Outputs a risk score (0–1), calibrated confidence via temperature scaling (T=1.409), risk level (low/medium/high), and the top 5 words driving the score using ablation-based contribution analysis. Falls back to a 16-pattern heuristic scorer when the model is unavailable.
@@ -95,10 +95,30 @@ Feedback endpoint collects user corrections. Feedback consumer script filters lo
 
 ## Evaluation Metrics
 
-### Risk Scorer
-- **Test set:** accuracy, F1, precision, recall (computed at end of training)
-- **Adversarial test suite:** 12 red-team cases covering leetspeak, spacing evasion, misspelling, mixed-script attacks, Roman Urdu scam
-- **Calibration:** Temperature scaling verified on held-out validation set
+### Risk Scorer (trained LoRA XLM-RoBERTa)
+
+**Test set (97 examples — 50 benign, 47 toxic/scam):**
+
+| Metric | Score |
+|---|---|
+| Accuracy | 88.8% |
+| Precision (toxic/scam) | 97.0% |
+| Recall (toxic/scam) | 75.6% |
+| F1 (toxic/scam) | 85.0% |
+| Macro Precision | 90.7% |
+| Macro Recall | 87.8% |
+| Macro F1 | 88.5% |
+
+**Per-category breakdown:**
+- Benign: 50/50 correct (100%)
+- Toxic: 19/25 correct (76%)
+- Scam: 17/22 correct (77%)
+
+**Calibration:** Temperature scaling T=1.409, grid search over 100 values [0.5, 5.0] on validation set.
+
+**Adversarial test suite:** 12 red-team cases covering leetspeak, spacing evasion, misspelling, mixed-script attacks, and Roman Urdu scam. The heuristic baseline passes 4/12; the trained model has not been re-evaluated on these cases yet (requires Colab GPU). A Colab-runnable script (`tests/run_adversarial_colab.py`) is provided for re-running against the trained adapter.
+
+Full metrics: [`tests/eval_metrics_full_t0.4.json`](tests/eval_metrics_full_t0.4.json)
 
 ### Whisper Speech-to-Text
 - **WER** (Word Error Rate) on 50 Urdu speech samples
@@ -119,7 +139,7 @@ Feedback endpoint collects user corrections. Feedback consumer script filters lo
 | Colab idle disconnect after ~90 min | Free-tier timeout, VM recycled → all files wiped | Auto-download: zip + `files.download()` triggers browser download immediately after training completes |
 | Colab GPU limits exhausted | Free-tier has per-account GPU quotas | Rotated to fresh Google accounts for training |
 | `FileNotFoundError: combined_risk.csv` | Git clone created nested `UrduStack/UrduStack` directory | Detect and remove nested clone, `os.chdir` into correct directory |
-| NER producing garbage output | Model `Davlan/xlm-roberta-base-ner` trained on African languages, not Urdu | Switched to `wietsedv/xlm-roberta-base-ner` (WikiAnn, covers Urdu); normalize Roman Urdu before extraction; map PER/LOC/ORG → PERSON/LOCATION/ORGANIZATION |
+| NER producing garbage output | Model `Davlan/xlm-roberta-base-ner` trained on African languages, not Urdu | Switched to `Davlan/xlm-roberta-base-wikiann-ner` (WikiAnn, covers Urdu); normalize Roman Urdu before extraction; map PER/LOC/ORG → PERSON/LOCATION/ORGANIZATION |
 | Simplify producing garbage output | Broken dictionary: English mappings (`"استعمال": "use"`), identity mappings, Hindi words, multi-word keys never matched | Rewrote dictionary (19 clean entries), multi-word phrase matching before single words, Roman Urdu support via normalization |
 | HF datasets/torchvision crash on Colab | `VideoReader` import error at batch collation time | Custom `_TokenizedDataset` (plain `torch.utils.data.Dataset`) bypasses HF formatter entirely |
 | pip install failures on Colab | Transient network issues, torchao conflicts | Retry logic (2 attempts with 5s delay), uninstall torchao before install |
@@ -187,8 +207,17 @@ UrduStack/
 ├── models/
 │   ├── temperature.txt           # Calibrated temperature (1.409)
 │   └── risk_lora/                # Trained LoRA adapter + tokenizer
+├── data/
+│   └── processed/
+│       ├── rag_phrase_pairs.json # RAG seed: 124 entries extending static dict to 587 total
+│       └── roman_urdu_freq.json  # Frequency map (built on Colab, committed)
 ├── tests/
-│   └── adversarial_cases.py      # 12-case red-team test suite
+│   ├── adversarial_cases.py      # 12-case red-team test suite (HTTP-based)
+│   ├── run_adversarial_colab.py  # Adversarial re-run against trained model
+│   ├── run_evaluation.py         # Full 97-example evaluation pipeline
+│   ├── eval_dataset.csv          # 97 test examples (50 benign, 47 toxic/scam)
+│   ├── eval_metrics_full_t0.4.json  # Committed evaluation metrics
+│   └── test_unit.py              # 30 pytest unit tests
 └── static/
     └── index.html                # Vanilla JS frontend
 ```
@@ -199,7 +228,7 @@ UrduStack/
 
 1. **LoRA over full fine-tuning** — 4.5MB adapter vs 1.1GB full model; fast iteration, easy to ship
 2. **XLM-RoBERTa over Urdu-specific models** — Handles Roman Urdu natively without script conversion at the model level
-3. **3-tier normalization cascade** — Dictionary first (exact), RAG second (fuzzy), transliteration last (phonetic) — maximizes accuracy while ensuring every word gets an Urdu-script output
+3. **3-tier normalization cascade** — Dictionary first (exact, 467 words), RAG second (fuzzy, 587 phrases via FAISS — static dict + 124 seed entries for scam/toxic/conversational vocabulary), transliteration last (phonetic) — maximizes accuracy while ensuring every word gets an Urdu-script output
 4. **Temperature calibration** — Grid search on validation set prevents overconfident predictions
 5. **Ablation-based contributions** — Remove each word, measure score drop → shows users *why* the model flagged the text
 6. **Class-weighted loss** — Handles toxic/clean imbalance without resampling
@@ -209,10 +238,10 @@ UrduStack/
 
 ## Limitations & Future Work
 
-- **Adversarial tests not re-run** against the trained model (stale heuristic results from early development)
-- **NER offset mapping** assumes 1:1 token alignment; multi-word normalizer expansions can desync character positions
-- **No batch inference** — each text is processed individually (fine for demo, slow at scale)
-- **Frequency map not committed** — `data/processed/roman_urdu_freq.json` is built on Colab but not in the repo; normalization falls back to the 467-word static dictionary locally
-- **Whisper base model** — `small` or `medium` would improve Urdu WER significantly but need more VRAM
-- **No model versioning** — retraining overwrites the adapter; no experiment tracking or model registry
-- **README out of date** — documents only 4 of 8 API endpoints
+- **Adversarial tests not re-run against trained model:** The 12-case red-team suite (`tests/adversarial_cases.py`) was last evaluated against the heuristic baseline (4/12 pass). The trained LoRA adapter has not been re-evaluated on these cases yet — `tests/run_adversarial_colab.py` is provided for this. Expected improvement on baseline/mixed-script cases; leetspeak and spacing evasion remain known weaknesses.
+- **Frequency map not in repo:** The Tier-1 frequency map (`data/processed/roman_urdu_freq.json`) is built from 6.37M parallel sentences on Colab via `scripts/build_normalizer_map.py` but was not downloaded to the repo. The normalizer gracefully falls back to the 467-word static dictionary + RAG (seeded with 124 additional domain-specific entries in `data/processed/rag_phrase_pairs.json`, totaling 587 indexed phrases) + phonetic transliteration. The build script and design are in place; the frequency map JSON is generated on first Colab run.
+- **Simplification dictionary (19 entries):** The `COMPLEX_TO_SIMPLE` map covers 19 high-frequency formal Urdu words. This is functional but limited — expanding to 100+ entries with frequency-weighted selection is a clear next step. The architecture (multi-word matching, Roman Urdu support, complexity scoring) scales to larger dictionaries without code changes.
+- **NER offset mapping:** Assumes 1:1 token alignment between original and normalized text. When the normalizer expands a single Roman Urdu token into multiple Urdu-script tokens, character offsets can desync. Works correctly for Urdu-script input; Roman Urdu entity positions may be approximate.
+- **No batch inference:** Each text is processed individually (fine for demo, slow at scale).
+- **Whisper base model:** `small` or `medium` would improve Urdu WER significantly but need more VRAM.
+- **No model versioning:** Retraining overwrites the adapter; no experiment tracking or model registry.

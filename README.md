@@ -31,6 +31,10 @@ A unified, self-hosted, code-switch-aware Urdu NLP infrastructure layer for Urdu
 | POST | `/normalize` | `{text}` | `{normalized, confidence, segments}` |
 | POST | `/risk-score` | `{text}` | `{score, confidence, risk_level, flagged_phrases, explanation}` |
 | POST | `/transcribe` | audio file | `{text, confidence}` |
+| POST | `/ner` | `{text}` | `{entities}` |
+| POST | `/simplify` | `{text}` | `{simplified, changes, complexity}` |
+| POST | `/analyze` | `{text}` | Full pipeline (normalize + risk + NER + simplify) |
+| POST | `/feedback` | `{text, label, ...}` | `{stored}` |
 
 ## Project structure
 
@@ -102,12 +106,12 @@ The container exposes port `7860` and runs `app.py`, which mounts the Gradio pla
 ### Core infrastructure
 - [x] FastAPI endpoints: `/health`, `/normalize`, `/risk-score`, `/transcribe`
 - [x] Code-switch-aware normalizer (dictionary + RAG + phonetic transliteration)
-- [x] Frequency map from 6.37M parallel sentences (Roman-Urdu-Parl + PURUTT)
+- [x] Frequency map builder (`scripts/build_normalizer_map.py` — runs on Colab, JSON not committed)
 - [x] Synthetic scam data generator (job scams, lottery fraud, phishing, fee fraud)
 - [x] Speech-to-text via Urdu Whisper
 - [x] Named Entity Recognition (XLM-RoBERTa WikiANN)
 - [x] Lexical simplification for plain-language explanations
-- [x] Retrieval-augmented normalization (FAISS char-ngram index)
+- [x] Retrieval-augmented normalization (FAISS char-ngram index, seeded with 124 entries beyond static dict → 587 total phrases)
 
 ### Risk model
 - [x] LoRA fine-tuned XLM-RoBERTa on PURUTT (72.7k samples, 5 epochs)
@@ -124,6 +128,8 @@ The container exposes port `7860` and runs `app.py`, which mounts the Gradio pla
 - [x] PDF report export
 - [x] Colab launch notebook with auto-detect model files
 - [x] Adversarial red-teaming harness
+- [x] 30 pytest unit tests (heuristic scorer, simplifier, preprocessor)
+- [x] Committed eval metrics JSON with real numbers
 - [x] Spacing evasion mitigation (character-collapse preprocessing)
 - [x] Architecture diagram
 
@@ -140,3 +146,48 @@ The container exposes port `7860` and runs `app.py`, which mounts the Gradio pla
   preprocessing collapse but not fully eliminated.
 - **Domain shift:** Trained on social media text; formal/literary Urdu
   may perform differently.
+- **Frequency map:** Tier-1 lookup built on Colab but not committed to
+  repo; normalizer falls back to 467-word dictionary + RAG (seeded with
+  124 additional domain-specific entries, 587 total phrases) + transliteration.
+- **Adversarial tests:** Heuristic baseline passes 4/12 cases; trained
+  model not yet re-evaluated on these (requires Colab GPU).
+
+## Testing
+
+### Unit tests
+```bash
+pip install pytest
+pytest tests/test_unit.py -v
+```
+30 tests covering the heuristic scorer (8 tests), risk level thresholds
+(3), pattern inventory (4), lexical simplifier (8), spacing-collapse
+preprocessor (4), and script detection (3). Normalization tests skip
+gracefully when numpy is not installed.
+
+### Full evaluation (requires GPU)
+```bash
+python tests/run_evaluation.py              # all 97 examples
+python tests/run_evaluation.py --mode adversarial  # 12 red-team cases
+python tests/run_adversarial_colab.py       # standalone adversarial runner
+```
+
+### Evaluation results
+
+The trained LoRA adapter achieves on a 97-example test set:
+
+| Metric | Score |
+|---|---|
+| Accuracy | 88.8% |
+| Precision | 97.0% |
+| Recall | 75.6% |
+| F1 | 85.0% |
+
+Full metrics: [`tests/eval_metrics_full_t0.4.json`](tests/eval_metrics_full_t0.4.json)
+
+### Adversarial red-team baseline
+
+The heuristic keyword scorer passes **4/12** adversarial cases. This is
+expected: leetspeak, character spacing, and Roman-Urdu scam phrasing evade
+simple keyword matching. The trained model + spacing-collapse preprocessing
+is expected to improve this substantially. Re-run with
+`tests/run_adversarial_colab.py` after loading the trained adapter.

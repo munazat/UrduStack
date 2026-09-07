@@ -23,3 +23,4 @@ checkpoints/
 data/feedback.csv
 data/processed/*
 !data/processed/roman_urdu_freq.json
+!data/processed/rag_phrase_pairs.json
